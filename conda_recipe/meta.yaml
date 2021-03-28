@@ -1,0 +1,36 @@
+{% set data = load_setup_py_data() %}
+# must do conda install -c NostrumBioDiscovery adaptive_pele 
+package:
+  name: adaptive_pele
+  version: {{ data.get('version') }}
+
+about:
+  home: https://github.com/nostrumbiodiscovery/pele_platform
+  license: Apache
+  license_file: LICENSE
+  summary: AdaptivePELE is a Python package aimed at enhancing the sampling of molecular simulations
+
+source:
+  path: ../
+
+build:
+  script: python -m pip install . --no-deps -vv
+  number: 0
+
+requirements:
+  host:
+    - python
+    - setuptools
+
+  run:
+    # Base dependencies
+    - python
+    - numpy
+    - scipy
+    - mdtraj==1.9.5
+
+test:
+  imports:
+    - adaptivePELE
+  command:
+    - python -m adaptivePele.adaptiveSampling -h 
