@@ -11,6 +11,10 @@ To install from PyPI simply run::
 
     pip install AdaptivePELE
 
+To install from Conda run::
+
+     conda install -c nostrumbiodiscovery adaptive_pele 
+
 To install from source, you need to install and compile cython files in the base folder with::
 
     git clone https://github.com/AdaptivePELE/AdaptivePELE.git
@@ -212,7 +216,6 @@ When using MD as a progagator, the following parameters are mandatory:
 * **reporterFrequency** (*integer*, mandatory): Frequency to write the report
   and trajectories (in time steps, see **timeStep** property)
 * **numReplicas** (*integer*, mandatory): Number of replicas to run (see `Running AdaptivePELE with GPUs`_ section), each replica will run the same number of trajectories, calculated as **t = p/n**, where *t* is the number of the trajectories per replica, *p* is the number of processors and *n* is the number of replicas
-* **ligandName** (*str*, mandatory): Ligand residue name in the PDB
 
 Optionally, you can also use the following parameters:
 
@@ -222,9 +225,14 @@ Optionally, you can also use the following parameters:
   equilibration run (default corresponds to 1 ns)
 * **timeStep** (*float*, default=2): Value of the time step for the integration
   (in femtoseconds)
-* **boxCenter** (*list*, default=None): List with the coordinates of the simulation box center
+* **boxCenter** (*list*, default=None): List with the coordinates of the simulation box center. When using a simulation box in a run with multiple ligands, please ensure that the *ligandsToRestrict* parameter is correctly set.
 * **boxRadius** (*float*, default=20): Radius of the spherical box the ligand will be restrained to (in angstroms). Note that when using the spherical box restraint only xtc trajectories are supported.
-* **ligandCharge** (*integer*, default=0): Charge of the ligand
+* **ligandName** (*str* or *list*, default=None): Ligand residue name in the PDB for all
+  residues that must be parametrised, starting from version 1.6.3 more than one
+  ligand can be specified
+* **ligandCharge** (*integer* or *list*, default=None): Charge of the ligand for all
+  residues that must be parametrised, starting from version 1.6.3 more than one
+  ligand can be specified
 * **WaterBoxSize** (*float*, default=8): Distance of the edge of the solvation
   box from the closest atom (in angstroms)
 * **nonBondedCutoff** (*float*, default=8): Radius for the nonBonded cutoff of
@@ -255,9 +263,13 @@ Optionally, you can also use the following parameters:
 * **constraints** (*list*, default=None): List of constraints between atoms to
   establish in a simulation. The constraints must be specified as a list in the
   following format (see `Control File Examples`_ section for an example on how 
-  to set constraints.  **Note**: the distance of the constrints **must** be specified in angstroms)::
+  to set constraints.  **Note**: the distance of the constraints **must** be specified in angstroms)::
 
   ["atom1:res1:resnum1", "atom2:res2:resnum2", distance]
+
+  **Note 2**: Histidines present in constraints should be named HIS regardless
+  of their protonation state, see `Input preparation for MD`_ section for more
+  details on histidines naming.
 
 * **boxType** (*str*, default=sphere): Type of box to use, it can be *sphere* or
   *cylinder*
@@ -266,6 +278,21 @@ Optionally, you can also use the following parameters:
 
   [[xb, yb, zb], [xt, yt, zt]]
 
+* **forcefield** (*str*, default="ff99SB"): Forcefield to use in the simulation, current options are: {"ff99SB", "ff14SB"}
+* **postprocessing** (*bool*, defuault=True): "Whether to postprocess the trajectories (wrapping of the water box and alginment of the protein)"
+* **cofactors** (*list*, default=None): List of predefined cofactors to load,
+  options are *fadh-*, *fmn* and *nad*, and they must have PDB names *FAD*,
+  *FMN* and *NAP* respectively. The parameters are pulled from the `AMBER
+  parameter database <http://research.bmh.manchester.ac.uk/bryce/amber>`_.
+* **ligandsToRestrict** (*list*, default=None): List of ligands that should be
+  restricted to the simulation box. This is useful when multiple ligands are
+  specified to parametrise, e.g a small molecule and a strange cofactor.
+  Typically, one might one to constrain the cofactor but allow mobility for the
+  small molecule, in that case the value of this parameter should be a list
+  containing only the PDB name of the small molecule. To ensure backwards
+  compatibility, if only one ligand is specified in the *ligandName* parameter
+  and a simulation box is set, the value of **ligandsToRestrict** will be set
+  to the same as *ligandName*.
 
 Exit condition
 ..............
@@ -362,13 +389,19 @@ number of contacts and a value of 1 typically indicates that the ligand is on th
 We encourage the use of default parameters with very few exceptions such as in the study 
 of the diffusion of ions or tiny molecules (e.g. a oxygen molecule).
 
+It should be noted that both in this document as well as in the parameter
+names, the use of the term *ligand* does not only refer to a small molecule but
+to the molecule used to compare the conformations in the clustering procedure.
+For example, one could run a simulation with a protein-protein complex and use
+the chain identifier to compare the conformations (see **Parameters** section
+below), thus one of the proteins would be considered a "ligand".
 
 ThresholdCalculator
 ...................
 
-* **constant**, where all clusters have the same threshold. A sound value may be 3Å.
+* **constant**, where all clusters have the same threshold. A sound value may be 3 Å.
 
-* **heaviside** (default), where thesholds (values) are assigned according to a set of step functions that 
+* **heaviside** (default), where thresholds (values) are assigned according to a set of step functions that 
   vary according to a ratio of protein-ligand contacts and ligand size , *r*, (conditions, see below). The values and conditions 
   of change are defined with two lists. The condition list is iterated until *r* > condition[i], and the used
   threshold is values[i]. If r <= conditions[i] for all i, it returns the last element in values. 
@@ -413,8 +446,13 @@ MSM Clustering
 The **MSM** clusters a simulation in order to estimate an MSM, this includes
 the possibility of preprocessing the trajectories with the TICA method [TICA]_
 
-Parameters
-..........
+Clustering Parameters
+.....................
+
+Below you can find  a list of all parameters that can be used in the clustering
+block. Typically, all parameters apply to all kinds of clustering except Null
+Clustering, except those that are specified otherwise (often exclusive to MSM
+clustering):
 
 * **ligandResname** (*string*, default=""): Ligand residue name in the PDB (if necessary)
 * **ligandChain** (*string*, default=""): Ligand chain (if necessary)
@@ -478,9 +516,9 @@ which, given the default options, is equivalent to::
 
 
 In this exemple, clusters having a contacts ration greater than 1 have a
-treshold of 2, those with contacts ratio between 1 and 0.75 have a treshold of
-3, between 0.75 and 0.5 a threshold of 4 and the rest have a threshold size of
-5. This means that for greater contacts ratio, typically closer to the binding site,
+treshold of 2 Å, those with contacts ratio between 1 and 0.75 have a treshold of
+3 Å, between 0.75 and 0.5 a threshold of 4 Å and the rest have a threshold size of
+5 Å. This means that for greater contacts ratio, typically closer to the binding site,
 the cluster size will be smaller and therefore those regions will be more
 finely discretized.
 
@@ -924,15 +962,15 @@ Analysis
 
 In order to analyse simulation results, a bunch of scripts are provided in ``AdaptivePELE/analysis``. Get help to run them with: ``python <script> -h``
 
-Example to print column 5 evolution with gnuplot::
+Example to plot column 5 evolution::
 
-    python -m AdaptivePELE.analysis.plotAdaptive 4 2 5 report_ -lines | gnuplot -persist
+    python -m AdaptivePELE.analysis.plotAdaptive 4 2 5 report_ -lines
 
 It prints the evolution of column 5 (e.g. RMSD) in report_* files with lines in epochs of 4 steps.
 
-Example to print BE against RMSD with gnuplot::
+Example to print BE against RMSD::
 
-    python -m AdaptivePELE.analysis.plotAdaptive 4 5 6 report_ -points | gnuplot -persist
+    python -m AdaptivePELE.analysis.plotAdaptive 4 5 6 report_ -points
 
 It prints the column 6 against column 5 with points. Epoch length is ignored in this case
 
@@ -1006,7 +1044,8 @@ Input preparation for MD
 ------------------------
 
 Currently for running MD with protein-ligand systems we use AmberTools and the
-gaff forcefield for the ligand, and the Amber99 forcefield for the protein.
+gaff forcefield for the ligand, and the Amberff forcefield for the protein
+(different versions can be selected see ).
 
 Several tasks are applied to the input pdb to ensure compatibility with
 AmberTools:
@@ -1019,7 +1058,8 @@ AmberTools:
 
 * Identify disulphide bonds
 
-* Check the protonation states of the histidine residues.
+* Check the protonation states of the histidine residues, the input structure
+  should have the correct histidine protonation state for the model.
 
 * Check atom names so that they match the expected names for the amber
   forcefield
@@ -1034,6 +1074,18 @@ mind when providing input for the MD runs:
 * The ligand in the input file can't have a name starting with a digit, since
   AmberTools does not accept residues starting with digits
 
+* Histidines should be name *HIS* regardless of the protonation state, the code
+  will detect and assign the correct template without the need of using
+  alternative names such as *HIE* or *HIP* (this is particularly important when
+  using constraints, see `MD Parameters`_ section for more details on the
+  constraints options).
+
+* Different cysteine types can be specified by changing the residue name.
+  Disulphide bonds will be automatically detected, but can be also specified
+  manually by renaming the cysteines as *CYX*. Furthermore, cysteines bound to
+  metals should be renamed to *CYM*.
+
+Starting from version v1.6.3, it is possible to use cofactors as well as multiple ligands as input. For more details on how to include them, see the `MD Parameters`_ section.
 
 Equilibration procedure in MD
 -----------------------------
@@ -1141,12 +1193,32 @@ like::
     #SBATCH --constraint=k80
     #SBATCH --gres gpu:4
 
-    module load intel/16.0.2 amber/16 python/2.7.2 2> /dev/null
-    export PYTHONPATH="/gpfs/projects/bsc72/AdaptiveSampling/bin_mt/v1.6:/gpfs/projects/bsc72/lib/site-packages_minot"
+    module purge
+    module load bullxmpi/bullxmpi-1.2.9.1 compilewrappers/yes vgl/2.5 cuda/7.5 K80/default
+    module load intel/16.0.2 amber/16 python/2.7.2
+    export PYTHONPATH="/gpfs/projects/bsc72/adaptiveSampling/bin_mt/v1.6.2:/gpfs/projects/bsc72/lib/site-packages_minot"
     srun python -m AdaptivePELE.adaptiveSampling control_file_MD_3ptb_mt.conf
 
 Note also that this job requests 8 cpus per replica. At least a number of cpus
 per replica equal to the number of trajectories per replica are required.
+Similarly, the CTE-POWER cluster also has 4 gpus per node, so the configuration
+is very similar. An example for this machin would look like::
+
+    #!/bin/bash
+    #SBATCH --job-name="md_PK2_evoCt"
+    #SBATCH -D .
+    #SBATCH --output=md_PK2_evoCt.out
+    #SBATCH --error=md_PK2_evoCt.err
+    #SBATCH --ntasks=1
+    #SBATCH --nodes=1
+    #SBATCH --gres gpu:4
+    #SBATCH --cpus-per-task=160
+    #SBATCH --time=14:00:00
+
+    module load python/3.6.5
+    module load ambertools/18
+    export PYTHONPATH="/gpfs/projects/bsc72/adaptiveSampling/bin_cte/v1.6.2:/gpfs/projects/bsc72/lib/site-packages-cte"
+    srun python -m AdaptivePELE.adaptiveSampling templetized_PK2_evoCt_md.conf
 
 
 .. [APELE] Daniel Lecina, Joan F. Gilabert, and Victor Guallar. Adaptive simulations, towards interactive protein-ligand modeling. Scientific Reports, 7(1):8466, 2017, https://www.nature.com/articles/s41598-017-08445-5

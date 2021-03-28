@@ -7,22 +7,76 @@ All notable changes to this project will be documented in this file.
 The format is based on `Keep a Changelog <http://keepachangelog.com/en/1.0.0/>`_.
 
 
-XXX - Unreleased
+.. XXX - Unreleased
+.. ----------------
+
+1.7 - 2021-02-11
 ----------------
 
 New features:
 .............
 
-    - Add possibility to generate cylinder box from pdb
+    - Use residue numbers and chain names in clustering, which makes possible
+      to run protein-protein simulations
+    - The plotAdaptive script now accepts a path to the simulation folder and
+      has an option to skip the first step, or a number of steps when plotting
+    
+Bug fixes:
+..........
+
+    - Fix bugs running MD simulations without ligand after the changes in
+      previous version
+
+1.6.3 - 2020-09-28
+------------------
+
+New features:
+.............
+
+    - Add annotations to plotAdaptive, which show the origin (epoch, trajectory and snapshot) of the plot points
+    - Parametrize more than one ligand in MD simulations
+    - Include confactors in MD simulations
+    - MD simulations can now be extended in time
 
 Bug fixes:
 ..........
 
+    - Fix bug ignoring ligandName parameter in the simulation block
+
+Behaviour changes from previous version:
+........................................
+
+    - Modify plotAdaptive to generate the plots using matplotlib and not rely on gnuplot
+    - Raise separate and more informative errors for the cases of input file not existing, resname selection incorrect, input file in text file but not pdb and topology mismatching for binary files
+    - Constrain the heavy atoms in the minimization run at the begging of the
+      epochs in MD simulation, to preserve similiraty with the original
+      cluster
+
+1.6.2 - 2019-07-24
+------------------
+
+New features:
+.............
+
+    - Add possibility to generate cylinder box from pdb
+    - Add coordinate wrapping to XTC reporter
+
+Bug fixes:
+..........
+
+    - Fix bug restarting MD simulation with constraints
+    - Fix bug that crashed when constraining HIS
+    - Fix colorbar range for plotAdaptive script
+    - Fix bug in HIS protonation
 
 Behaviour changes from previous version:
 ........................................
 
     - Allow PELE equilibration to run without a box
+    - Read PELE and MD reports seemingly
+    - Add postprocessing option to simulationRunner
+    - Add proper topology support to selectOnPlot and backtrackAdaptiveTrajectory 
+    - Write topologies.pkl at the start of the first epoch
 
 1.6.1 - 2019-04-26
 ------------------

@@ -19,14 +19,6 @@ AdaptivePELE simulation.
 
         python setup.py build_ext --inplace
 
-    - If you get an error like::
-
-        ValueError: The input pdb file/string was empty, no atoms loaded!
-
-      tipically one of two things happened, either the pdb file passed is not
-      correctly formed or empty or the resname introduced in the control file does
-      not match the one in the control file.
-
     - Simulation dies with no error. This happen sometimes in a PELE simulation,
       almost always is related to a PELE error that was not handled properly. One
       frequent source of this issue in simulation running in the life or nord
@@ -59,3 +51,11 @@ AdaptivePELE simulation.
       center of the box and is listed in the trajectories as *DUM* atom in
       a residue also named *DUM*. This atom is massless so it will not be moved
       during the simulation.
+
+    - Ligand preparation for MD fails with a ligand containing a Cl atom. With
+      a tleap error like::
+      FATAL:  Atom .R<SCH 218>.A<Cl1 22> does not have a type.
+
+      check that the ligand's Cl atom in named "Cl" and not "CL", so that
+      antechamber recognizes it properly. This might happen with other atoms,
+      if so we will update this site with their examples.

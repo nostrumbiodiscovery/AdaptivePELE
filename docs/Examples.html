@@ -64,7 +64,7 @@
             
             
               <div class="version">
-                v1.6.1
+                v1.6.3
               </div>
             
           
@@ -426,10 +426,13 @@ moment this was written)</p>
 <li><p class="first"><strong>constraints</strong> (<em>list</em>, default=None): List of constraints between atoms to
 establish in a simulation. The constraints must be specified as a list in the
 following format (see <a class="reference internal" href="#control-file-examples">Control File Examples</a> section for an example on how
-to set constraints.  <strong>Note</strong>: the distance of the constrints <strong>must</strong> be specified in angstroms):</p>
+to set constraints.  <strong>Note</strong>: the distance of the constraints <strong>must</strong> be specified in angstroms):</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="p">[</span><span class="s2">&quot;atom1:res1:resnum1&quot;</span><span class="p">,</span> <span class="s2">&quot;atom2:res2:resnum2&quot;</span><span class="p">,</span> <span class="n">distance</span><span class="p">]</span>
 </pre></div>
 </div>
+<p><strong>Note 2</strong>: Histidines present in constraints should be named HIS regardless
+of their protonation state, see <a class="reference internal" href="#input-preparation-for-md">Input preparation for MD</a> section for more
+details on histidines naming.</p>
 </li>
 <li><p class="first"><strong>boxType</strong> (<em>str</em>, default=sphere): Type of box to use, it can be <em>sphere</em> or
 <em>cylinder</em></p>
@@ -439,6 +442,10 @@ bases of the cylinder (in angstroms), this should look like:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="p">[[</span><span class="n">xb</span><span class="p">,</span> <span class="n">yb</span><span class="p">,</span> <span class="n">zb</span><span class="p">],</span> <span class="p">[</span><span class="n">xt</span><span class="p">,</span> <span class="n">yt</span><span class="p">,</span> <span class="n">zt</span><span class="p">]]</span>
 </pre></div>
 </div>
+</li>
+<li><p class="first"><strong>forcefield</strong> (<em>str</em>, default=”ff99SB”): Forcefield to use in the simulation, current options are: {“ff99SB”, “ff14SB”}</p>
+</li>
+<li><p class="first"><strong>postprocessing</strong> (<em>bool</em>, defuault=True): “Whether to postprocess the trajectories (wrapping of the water box and alginment of the protein)”</p>
 </li>
 </ul>
 </div>
@@ -1119,7 +1126,8 @@ described with the file topology.pdb</p>
 <div class="section" id="input-preparation-for-md">
 <h2>Input preparation for MD<a class="headerlink" href="#input-preparation-for-md" title="Permalink to this headline">¶</a></h2>
 <p>Currently for running MD with protein-ligand systems we use AmberTools and the
-gaff forcefield for the ligand, and the Amber99 forcefield for the protein.</p>
+gaff forcefield for the ligand, and the Amberff forcefield for the protein
+(different versions can be selected see ).</p>
 <p>Several tasks are applied to the input pdb to ensure compatibility with
 AmberTools:</p>
 <ul class="simple">
@@ -1128,7 +1136,8 @@ users’ responsibility to provide a correct input structure.</li>
 <li>Correct alternative positions. If the input pdb has alternative positions we
 select the ones with higher occupancy.</li>
 <li>Identify disulphide bonds</li>
-<li>Check the protonation states of the histidine residues.</li>
+<li>Check the protonation states of the histidine residues, the input structure
+should have the correct histidine protonation state for the model.</li>
 <li>Check atom names so that they match the expected names for the amber
 forcefield</li>
 </ul>
@@ -1140,6 +1149,11 @@ chain so that the processing can identify them and the resulting amber
 topology has several molecules as desired.</li>
 <li>The ligand in the input file can’t have a name starting with a digit, since
 AmberTools does not accept residues starting with digits</li>
+<li>Histidines should be name <em>HIS</em> regardless of the protonation state, the code
+will detect and assign the correct template without the need of using
+alternative names such as <em>HIE</em> or <em>HIP</em> (this is particularly important when
+using constraints, see <a class="reference internal" href="#md-parameters">MD Parameters</a> section for more details on the
+constraints options).</li>
 </ul>
 </div>
 <div class="section" id="equilibration-procedure-in-md">
@@ -1244,12 +1258,31 @@ like:</p>
 <span class="c1">#SBATCH --gres gpu:4</span>
 
 <span class="n">module</span> <span class="n">load</span> <span class="n">intel</span><span class="o">/</span><span class="mf">16.0</span><span class="o">.</span><span class="mi">2</span> <span class="n">amber</span><span class="o">/</span><span class="mi">16</span> <span class="n">python</span><span class="o">/</span><span class="mf">2.7</span><span class="o">.</span><span class="mi">2</span> <span class="mi">2</span><span class="o">&gt;</span> <span class="o">/</span><span class="n">dev</span><span class="o">/</span><span class="n">null</span>
-<span class="n">export</span> <span class="n">PYTHONPATH</span><span class="o">=</span><span class="s2">&quot;/gpfs/projects/bsc72/AdaptiveSampling/bin_mt/v1.6:/gpfs/projects/bsc72/lib/site-packages_minot&quot;</span>
+<span class="n">export</span> <span class="n">PYTHONPATH</span><span class="o">=</span><span class="s2">&quot;/gpfs/projects/bsc72/AdaptiveSampling/bin_mt/v1.6.2:/gpfs/projects/bsc72/lib/site-packages_minot&quot;</span>
 <span class="n">srun</span> <span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">AdaptivePELE</span><span class="o">.</span><span class="n">adaptiveSampling</span> <span class="n">control_file_MD_3ptb_mt</span><span class="o">.</span><span class="n">conf</span>
 </pre></div>
 </div>
 <p>Note also that this job requests 8 cpus per replica. At least a number of cpus
-per replica equal to the number of trajectories per replica are required.</p>
+per replica equal to the number of trajectories per replica are required.
+Similarly, the CTE-POWER cluster also has 4 gpus per node, so the configuration
+is very similar. An example for this machin would look like:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="ch">#!/bin/bash</span>
+<span class="c1">#SBATCH --job-name=&quot;md_PK2_evoCt&quot;</span>
+<span class="c1">#SBATCH -D .</span>
+<span class="c1">#SBATCH --output=md_PK2_evoCt.out</span>
+<span class="c1">#SBATCH --error=md_PK2_evoCt.err</span>
+<span class="c1">#SBATCH --ntasks=1</span>
+<span class="c1">#SBATCH --nodes=1</span>
+<span class="c1">#SBATCH --gres gpu:4</span>
+<span class="c1">#SBATCH --cpus-per-task=160</span>
+<span class="c1">#SBATCH --time=14:00:00</span>
+
+<span class="n">module</span> <span class="n">load</span> <span class="n">python</span><span class="o">/</span><span class="mf">3.6</span><span class="o">.</span><span class="mi">5</span>
+<span class="n">module</span> <span class="n">load</span> <span class="n">ambertools</span><span class="o">/</span><span class="mi">18</span>
+<span class="n">export</span> <span class="n">PYTHONPATH</span><span class="o">=</span><span class="s2">&quot;/gpfs/projects/bsc72/adaptiveSampling/bin_cte/v1.6.2:/gpfs/projects/bsc72/lib/site-packages-cte&quot;</span>
+<span class="n">srun</span> <span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">AdaptivePELE</span><span class="o">.</span><span class="n">adaptiveSampling</span> <span class="n">templetized_PK2_evoCt_md</span><span class="o">.</span><span class="n">conf</span>
+</pre></div>
+</div>
 <table class="docutils citation" frame="void" id="apele" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">

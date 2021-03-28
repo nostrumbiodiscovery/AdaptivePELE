@@ -3,13 +3,7 @@ import os
 import glob
 import shutil
 import unittest
-import numpy as np
-import simtk.openmm as mm
-import simtk.openmm.app as app
-import simtk.unit as unit
-import mdtraj as md
 import AdaptivePELE.adaptiveSampling as adaptiveSampling
-from AdaptivePELE.simulation.openmm_simulations import XTCReporter
 
 
 class TestMD(unittest.TestCase):
@@ -30,7 +24,16 @@ class TestMD(unittest.TestCase):
         # cleanup
         shutil.rmtree(output_path)
 
-    def testOpenMM3ptb(self):
+    def testOpenMM3ptb_noligand(self):
+        output_path = "tests/data/openmm_3ptb_no_ligand"
+        controlFile = "tests/data/templetized_controlFile_3ptb_no_ligand_md.conf"
+
+        adaptiveSampling.main(controlFile)
+        self.check_succesful_simulation(output_path, 1, 4)
+        # cleanup
+        shutil.rmtree(output_path)
+
+    def testOpenMM3ptb_cyl(self):
         output_path = "tests/data/openmm_3ptb_cyl"
         controlFile = "tests/data/templetized_controlFile_3ptb_cyl_md.conf"
 
@@ -66,5 +69,25 @@ class TestMD(unittest.TestCase):
         shutil.copytree("tests/data/restart_1", output_path)
         adaptiveSampling.main(controlFile)
         self.check_succesful_simulation(output_path, 2, 4)
+        # cleanup
+        shutil.rmtree(output_path)
+
+    def test_simulation_cofactors(self):
+        output_path = "tests/data/cofactors"
+        controlFile = "tests/data/cofactors.conf"
+        if os.path.exists(output_path):
+            shutil.rmtree(output_path)
+        adaptiveSampling.main(controlFile)
+        self.check_succesful_simulation(output_path, 1, 4)
+        # cleanup
+        shutil.rmtree(output_path)
+
+    def test_simulation_cofactors_ligand(self):
+        output_path = "tests/data/cofactors_ligand"
+        controlFile = "tests/data/cofactors_ligand.conf"
+        if os.path.exists(output_path):
+            shutil.rmtree(output_path)
+        adaptiveSampling.main(controlFile)
+        self.check_succesful_simulation(output_path, 1, 4)
         # cleanup
         shutil.rmtree(output_path)

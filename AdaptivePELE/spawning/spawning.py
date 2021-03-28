@@ -1,12 +1,12 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 from builtins import range
-import math
-import sys
-import numpy as np
-import random
-import scipy.optimize as optim
 import os
+import sys
+import math
 import glob
+import random
+import numpy as np
+import scipy.optimize as optim
 from abc import abstractmethod
 from scipy.linalg import lu, solve
 from AdaptivePELE.constants import blockNames
@@ -219,6 +219,9 @@ class SpawningParams:
             # reportFilename is now mandatory for all spawning not related to
             # MSM
             self.reportFilename = spawningParamsBlock[blockNames.SpawningParams.report_filename]
+            if spawningType == blockNames.StringSpawningTypes.independent:
+                # independent spawning only requires the reportFilename
+                return
             # this paramaters are optional for many methods, some of the
             # assignments are redundant and might be later overriden, but since
             # there are many spawning methods we trade in a bit of efficient for
@@ -1235,8 +1238,13 @@ class MSMCalculator(SpawningCalculator):
         bins = computedG.create_box(clusters, originalCoordinates, d)
         microstateVolume = computedG.calculate_microstate_volumes_new(clusters, originalCoordinates, bins, d)
         gpmf, string = computedG.calculate_pmf(microstateVolume, pi)
-        print("bound    Delta G     Delta W     Binding Volume:     Binding Volume contribution")
+        print("Results for estimated dG:")
+        print("bound    Delta G     Delta W     Binding Volume     Binding Volume contribution")
         print(string)
+        with open(os.path.join(outputPathConstants.epochOutputPathTempletized % currentEpoch, "results_summary.txt"), "w") as fw:
+            fw.write("Results for estimated dG:\n")
+            fw.write("bound    Delta G     Delta W     Binding Volume     Binding Volume contribution\n")
+            fw.write("%s\n" % string)
 
         pmf_xyzg = np.hstack((clusters, np.expand_dims(gpmf, axis=1)))
         np.savetxt(os.path.join(outputPathConstants.epochOutputPathTempletized % currentEpoch, "pmf_xyzg.dat"), pmf_xyzg)

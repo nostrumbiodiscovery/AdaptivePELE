@@ -12,16 +12,16 @@ if "bsccv" in machine:
     PYTHON = "/data2/apps/PYTHON/2.7.5/bin/python2.7"
 
 elif "mn.bsc" in machine:
-    PELE_EXECUTABLE = "/gpfs/projects/bsc72/PELE++/nord/rev090518/bin/PELE-1.5_mpi"
-    DATA_FOLDER = "/gpfs/projects/bsc72/PELE++/nord/rev090518/Data"
-    DOCUMENTS_FOLDER = "/gpfs/projects/bsc72/PELE++/nord/rev090518/Documents"
+    PELE_EXECUTABLE = "/gpfs/projects/bsc72/PELE++/nord/V1.6/build/PELE-1.6_mpi"
+    DATA_FOLDER = "/gpfs/projects/bsc72/PELE++/nord/V1.6/Data"
+    DOCUMENTS_FOLDER = "/gpfs/projects/bsc72/PELE++/nord/V1.6/Documents"
     PYTHON = "python"
 
 
 elif "bsc.mn" in machine:
-    PELE_EXECUTABLE = "/gpfs/projects/bsc72/PELE++/mniv/rev090518/bin/PELE-1.5_mpi"
-    DATA_FOLDER = "/gpfs/projects/bsc72/PELE++/mniv/rev090518/Data"
-    DOCUMENTS_FOLDER = "/gpfs/projects/bsc72/PELE++/mniv/rev090518/Documents"
+    PELE_EXECUTABLE = "/gpfs/projects/bsc72/PELE++/mniv/V1.6/build/PELE-1.6_mpi"
+    DATA_FOLDER = "/gpfs/projects/bsc72/PELE++/mniv/V1.6/Data"
+    DOCUMENTS_FOLDER = "/gpfs/projects/bsc72/PELE++/mniv/V1.6/Documents"
 
 elif "bullx" in machine:
     # this values are not correct for the minoTauro hardware, just leaving it
@@ -31,9 +31,9 @@ elif "bullx" in machine:
     DOCUMENTS_FOLDER = "/gpfs/projects/bsc72/PELE++/nord/rev090518/Documents"
 
 elif machine == "bscls309":
-    PELE_EXECUTABLE = "/home/jgilaber/PELE/PELE-1.5/bin/PELE-1.5_mpi"
-    DATA_FOLDER = "/home/jgilaber/PELE/PELE-1.5/Data"
-    DOCUMENTS_FOLDER = "/home/jgilaber/PELE/PELE-1.5/Documents"
+    PELE_EXECUTABLE = "/home/jgilaber/PELE-repo/bin/PELE-1.6_mpi"
+    DATA_FOLDER = "/home/jgilaber/PELE-repo/Data"
+    DOCUMENTS_FOLDER = "/home/jgilaber/PELE-repo/Documents"
 
 else:
     PELE_EXECUTABLE = None
@@ -53,9 +53,9 @@ class AmberTemplates:
                     "source leaprc.gaff\n" \
                     "source leaprc.water.tip3p\n" \
                     "$MODIFIED_RES " \
-                    "$RESNAME = loadmol2 $MOL2\n" \
-                    "loadamberparams $FRCMOD\n" \
+                    "$LIGANDS " \
                     "$DUM " \
+                    "$COFACTORS " \
                     "COMPLX = loadpdb $COMPLEX\n" \
                     "$BONDS " \
                     "addions COMPLX Cl- 0\n" \
@@ -64,19 +64,6 @@ class AmberTemplates:
                     "saveamberparm COMPLX $PRMTOP $INPCRD\n" \
                     "savepdb COMPLX $SOLVATED_PDB\n" \
                     "quit"
-    tleapTemplatenoLigand = "source $FORCEFIELD\n" \
-                            "source leaprc.gaff\n" \
-                            "source leaprc.water.tip3p\n" \
-                            "$MODIFIED_RES " \
-                            "$DUM " \
-                            "COMPLX = loadpdb $COMPLEX\n" \
-                            "$BONDS " \
-                            "addions COMPLX Cl- 0\n" \
-                            "addions COMPLX Na+ 0\n" \
-                            "solvatebox COMPLX TIP3PBOX $BOXSIZE\n" \
-                            "saveamberparm COMPLX $PRMTOP $INPCRD\n" \
-                            "savepdb COMPLX $SOLVATED_PDB\n" \
-                            "quit"
     DUM_atom = "DUM"
     DUM_res = "DUM"
     DUM_prep = "  0  0  0\n" \

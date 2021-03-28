@@ -63,7 +63,7 @@
             
             
               <div class="version">
-                v1.6.1
+                v1.7
               </div>
             
           
@@ -85,7 +85,7 @@
             
             
                 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../Examples.html">User Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../UserManual.html">User Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Problems.html">Frequently Asked Questions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../AdaptivePELE.html">AdaptivePELE – Package Description</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Changelog.html">Changelog</a></li>
@@ -138,19 +138,16 @@
            <div itemprop="articleBody">
             
   <h1>Source code for AdaptivePELE.analysis.numberOfClusters</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">unicode_literals</span>
-<span class="kn">import</span> <span class="nn">socket</span>
-<span class="kn">import</span> <span class="nn">matplotlib</span>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">unicode_literals</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">collections</span>
 <span class="kn">import</span> <span class="nn">argparse</span>
-<span class="n">machine</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">gethostname</span><span class="p">()</span>
-<span class="k">if</span> <span class="n">machine</span> <span class="o">==</span> <span class="s2">&quot;bsccv03&quot;</span><span class="p">:</span>
-    <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;wxagg&#39;</span><span class="p">)</span>
-<span class="k">elif</span> <span class="s1">&#39;login&#39;</span> <span class="ow">in</span> <span class="n">machine</span><span class="p">:</span>
-    <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;TkAgg&#39;</span><span class="p">)</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">AdaptivePELE.utilities.utilities</span> <span class="kn">import</span> <span class="n">get_available_backend</span>
+<span class="n">avail_backend</span> <span class="o">=</span> <span class="n">get_available_backend</span><span class="p">()</span>
+<span class="k">if</span> <span class="n">avail_backend</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">switch_backend</span><span class="p">(</span><span class="n">avail_backend</span><span class="p">)</span>
 <span class="k">try</span><span class="p">:</span>
     <span class="c1"># This might fail for older versions of matplotlib (e.g in life cluster)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;ggplot&quot;</span><span class="p">)</span>
@@ -432,7 +429,8 @@
     <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Contact ratio&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">filename</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s%s</span><span class="s2">_hist.png&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">outputPath</span><span class="p">,</span> <span class="n">filename</span><span class="p">))</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+    <span class="k">else</span><span class="p">:</span>
+    	<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
     <span class="n">file_name</span><span class="p">,</span> <span class="n">outputFolder</span> <span class="o">=</span> <span class="n">printHelp</span><span class="p">()</span>
@@ -448,7 +446,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2017, Daniel Lecina, Joan Francesc Gilabert.
+        &copy; Copyright 2019, Daniel Lecina, Joan Francesc Gilabert.
 
     </p>
   </div>

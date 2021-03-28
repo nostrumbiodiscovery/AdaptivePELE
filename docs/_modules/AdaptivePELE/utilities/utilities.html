@@ -63,7 +63,7 @@
             
             
               <div class="version">
-                v1.6.1
+                v1.7
               </div>
             
           
@@ -85,7 +85,7 @@
             
             
                 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../Examples.html">User Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../UserManual.html">User Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Problems.html">Frequently Asked Questions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../AdaptivePELE.html">AdaptivePELE – Package Description</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../Changelog.html">Changelog</a></li>
@@ -138,27 +138,28 @@
            <div itemprop="articleBody">
             
   <h1>Source code for AdaptivePELE.utilities.utilities</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">unicode_literals</span>
-<span class="kn">from</span> <span class="nn">builtins</span> <span class="k">import</span> <span class="nb">range</span>
-<span class="kn">from</span> <span class="nn">six</span> <span class="k">import</span> <span class="n">reraise</span> <span class="k">as</span> <span class="n">raise_</span>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">unicode_literals</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">ast</span>
 <span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">import</span> <span class="nn">socket</span>
-<span class="kn">import</span> <span class="nn">shutil</span>
 <span class="kn">import</span> <span class="nn">glob</span>
-<span class="kn">import</span> <span class="nn">string</span>
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">errno</span>
-<span class="kn">from</span> <span class="nn">scipy</span> <span class="k">import</span> <span class="n">linalg</span>
+<span class="kn">import</span> <span class="nn">socket</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">string</span>
+<span class="kn">from</span> <span class="nn">builtins</span> <span class="kn">import</span> <span class="nb">range</span>
+<span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="n">reraise</span> <span class="k">as</span> <span class="n">raise_</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">mdtraj</span> <span class="k">as</span> <span class="nn">md</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">linalg</span>
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">cPickle</span> <span class="k">as</span> <span class="nn">pickle</span>
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">pickle</span>
-<span class="kn">from</span> <span class="nn">AdaptivePELE.atomset</span> <span class="k">import</span> <span class="n">RMSDCalculator</span><span class="p">,</span> <span class="n">atomset</span>
-<span class="kn">from</span> <span class="nn">AdaptivePELE.freeEnergies</span> <span class="k">import</span> <span class="n">utils</span>
+<span class="kn">from</span> <span class="nn">AdaptivePELE.atomset</span> <span class="kn">import</span> <span class="n">RMSDCalculator</span><span class="p">,</span> <span class="n">atomset</span>
+<span class="kn">from</span> <span class="nn">AdaptivePELE.freeEnergies</span> <span class="kn">import</span> <span class="n">utils</span>
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">multiprocessing</span> <span class="k">as</span> <span class="nn">mp</span>
     <span class="n">PARALELLIZATION</span> <span class="o">=</span> <span class="kc">True</span>
@@ -178,11 +179,15 @@
     <span class="vm">__module__</span> <span class="o">=</span> <span class="ne">Exception</span><span class="o">.</span><span class="vm">__module__</span>
 
 
-<div class="viewcode-block" id="Topology"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.Topology">[docs]</a><span class="k">class</span> <span class="nc">Topology</span><span class="p">:</span>
+<span class="k">class</span> <span class="nc">UnspecifiedPELECrashException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="vm">__module__</span> <span class="o">=</span> <span class="ne">Exception</span><span class="o">.</span><span class="vm">__module__</span>
+
+
+<div class="viewcode-block" id="Topology"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.Topology">[docs]</a><span class="k">class</span> <span class="nc">Topology</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Container object that points to the topology used in each trajectory</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">topologies</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="c1"># the topologyMap maps each trajectory to its corresponding topology</span>
@@ -190,10 +195,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">topologyMap</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">topologyFiles</span> <span class="o">=</span> <span class="p">[]</span>
 
-    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">topologies</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">top</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">topologies</span><span class="p">:</span>
             <span class="k">yield</span> <span class="n">top</span>
 
@@ -209,7 +214,7 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">            Dump the contents of the topology object using pickle</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">writeObject</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;topologies.pkl&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="p">)</span></div>
+        <span class="n">writeObject</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;topologies.pkl&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="p">,</span> <span class="n">protocol</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Topology.setTopologies"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.Topology.setTopologies">[docs]</a>    <span class="k">def</span> <span class="nf">setTopologies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">topologyFiles</span><span class="p">,</span> <span class="n">cleanFiles</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -323,7 +328,7 @@
 
 
 <div class="viewcode-block" id="TopologyCompat"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.TopologyCompat">[docs]</a><span class="k">class</span> <span class="nc">TopologyCompat</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pdb_file</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pdb_file</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">topologyFiles</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">pdb_file</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">topologyFiles</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">topologies</span> <span class="o">=</span> <span class="p">[</span><span class="n">getTopologyFile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">topologyFiles</span><span class="p">)]</span>
@@ -387,7 +392,10 @@
     <span class="k">try</span><span class="p">:</span>
         <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">outputDir</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">exc</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">EEXIST</span><span class="p">:</span>
+        <span class="c1"># if at this point another process has created the folder we are already</span>
+        <span class="c1"># happy. If not, we complain</span>
+        <span class="k">if</span> <span class="n">exc</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">EEXIST</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">outputDir</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">exc</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
             <span class="k">raise</span></div>
 
 
@@ -454,6 +462,43 @@
     <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">trajFilename</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">][:</span><span class="o">-</span><span class="mi">4</span><span class="p">])</span></div>
 
 
+<div class="viewcode-block" id="getFileSuffix"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.getFileSuffix">[docs]</a><span class="k">def</span> <span class="nf">getFileSuffix</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="s2">&quot;_&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets the suffix appendend to a file name</span>
+
+<span class="sd">        :param filename: filename</span>
+<span class="sd">        :type filename: str</span>
+<span class="sd">        :param separator: character used as separator for the suffix</span>
+<span class="sd">        :type separator: str</span>
+
+<span class="sd">        :returns: int -- Trajectory number</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">separator</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="isReport"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.isReport">[docs]</a><span class="k">def</span> <span class="nf">isReport</span><span class="p">(</span><span class="n">reportFilename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks whether the file is a PELE report</span>
+
+<span class="sd">        :param reportFilename: Trajectory filename</span>
+<span class="sd">        :type reportFilename: str</span>
+
+<span class="sd">        :returns: bool -- Whether the file is a PELE report</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">getFileSuffix</span><span class="p">(</span><span class="n">reportFilename</span><span class="p">)</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="getReportNum"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.getReportNum">[docs]</a><span class="k">def</span> <span class="nf">getReportNum</span><span class="p">(</span><span class="n">reportFilename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets the report number</span>
+
+<span class="sd">        :param reportFilename: Trajectory filename</span>
+<span class="sd">        :type reportFilename: str</span>
+
+<span class="sd">        :returns: int -- Report number</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">getFileSuffix</span><span class="p">(</span><span class="n">reportFilename</span><span class="p">))</span></div>
+
+
 <div class="viewcode-block" id="getPrmtopNum"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.getPrmtopNum">[docs]</a><span class="k">def</span> <span class="nf">getPrmtopNum</span><span class="p">(</span><span class="n">prmtopFilename</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Gets the prmtop number</span>
@@ -502,7 +547,7 @@
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Symmetry dictionary correctly defined!&quot;</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="getRMSD"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.getRMSD">[docs]</a><span class="k">def</span> <span class="nf">getRMSD</span><span class="p">(</span><span class="n">traj</span><span class="p">,</span> <span class="n">nativePDB</span><span class="p">,</span> <span class="n">resname</span><span class="p">,</span> <span class="n">symmetries</span><span class="p">,</span> <span class="n">topology</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="getRMSD"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.getRMSD">[docs]</a><span class="k">def</span> <span class="nf">getRMSD</span><span class="p">(</span><span class="n">traj</span><span class="p">,</span> <span class="n">nativePDB</span><span class="p">,</span> <span class="n">resname</span><span class="p">,</span> <span class="n">reschain</span><span class="p">,</span> <span class="n">resnum</span><span class="p">,</span> <span class="n">symmetries</span><span class="p">,</span> <span class="n">topology</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Computes the RMSD of a trajectory, given a native and symmetries</span>
 
@@ -510,8 +555,12 @@
 <span class="sd">        :type traj: str</span>
 <span class="sd">        :param nativePDB:  Native PDB object</span>
 <span class="sd">        :type native PDB: :py:class:`.PDB`</span>
-<span class="sd">        :param resname: Resname to compute its RMSD</span>
+<span class="sd">        :param resname: Residue name of the ligand in the system pdb</span>
 <span class="sd">        :type resname: str</span>
+<span class="sd">        :param reschain: Chain name of the ligand in the system pdb</span>
+<span class="sd">        :type reschain: str</span>
+<span class="sd">        :param resnum: Residue number of the ligand in the system pdb</span>
+<span class="sd">        :type resnum: int</span>
 <span class="sd">        :param symmetries: Symmetries dictionary list with independent symmetry groups</span>
 <span class="sd">        :type symmetries: list of dict</span>
 <span class="sd">        :param topology: Topology for non-pdb trajectories</span>
@@ -525,7 +574,7 @@
     <span class="n">RMSDCalc</span> <span class="o">=</span> <span class="n">RMSDCalculator</span><span class="o">.</span><span class="n">RMSDCalculator</span><span class="p">(</span><span class="n">symmetries</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">snapshot</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">snapshots</span><span class="p">):</span>
         <span class="n">snapshotPDB</span> <span class="o">=</span> <span class="n">atomset</span><span class="o">.</span><span class="n">PDB</span><span class="p">()</span>
-        <span class="n">snapshotPDB</span><span class="o">.</span><span class="n">initialise</span><span class="p">(</span><span class="n">snapshot</span><span class="p">,</span> <span class="n">resname</span><span class="o">=</span><span class="n">resname</span><span class="p">,</span> <span class="n">topology</span><span class="o">=</span><span class="n">topology</span><span class="p">)</span>
+        <span class="n">snapshotPDB</span><span class="o">.</span><span class="n">initialise</span><span class="p">(</span><span class="n">snapshot</span><span class="p">,</span> <span class="n">resname</span><span class="o">=</span><span class="n">resname</span><span class="p">,</span> <span class="n">chain</span><span class="o">=</span><span class="n">reschain</span><span class="p">,</span> <span class="n">resnum</span><span class="o">=</span><span class="n">resnum</span><span class="p">,</span> <span class="n">topology</span><span class="o">=</span><span class="n">topology</span><span class="p">)</span>
 
         <span class="n">rmsds</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">RMSDCalc</span><span class="o">.</span><span class="n">computeRMSD</span><span class="p">(</span><span class="n">nativePDB</span><span class="p">,</span> <span class="n">snapshotPDB</span><span class="p">)</span>
 
@@ -545,7 +594,11 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">clusteringObjectPath</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">six</span><span class="o">.</span><span class="n">PY2</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">six</span><span class="o">.</span><span class="n">PY3</span><span class="p">:</span>
+                <span class="c1"># make python3 able to read python2-written pickles</span>
+                <span class="k">return</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;latin&quot;</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">EOFError</span><span class="p">:</span>
             <span class="n">t</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">tb</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()</span>
             <span class="n">raise_</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">tb</span><span class="p">)</span></div>
@@ -602,6 +655,21 @@
     <span class="n">ind2</span> <span class="o">=</span> <span class="p">(</span><span class="n">index</span> <span class="o">%</span> <span class="mi">6760</span><span class="p">)</span>
     <span class="n">ind3</span> <span class="o">=</span> <span class="n">ind2</span> <span class="o">%</span> <span class="mi">260</span>
     <span class="k">return</span> <span class="nb">chr</span><span class="p">(</span><span class="mi">65</span><span class="o">+</span><span class="n">ind1</span><span class="p">)</span><span class="o">+</span><span class="nb">chr</span><span class="p">(</span><span class="mi">65</span><span class="o">+</span><span class="n">ind2</span><span class="o">//</span><span class="mi">260</span><span class="p">)</span><span class="o">+</span><span class="nb">chr</span><span class="p">(</span><span class="mi">65</span><span class="o">+</span><span class="n">ind3</span><span class="o">//</span><span class="mi">10</span><span class="p">)</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">ind3</span> <span class="o">%</span> <span class="mi">10</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="join_coordinates_prob"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.join_coordinates_prob">[docs]</a><span class="k">def</span> <span class="nf">join_coordinates_prob</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Join a MxN numpy array representing some cluster center coordinates with</span>
+<span class="sd">        an 1XN array representing some metric of the clusters</span>
+
+<span class="sd">        :param coords: Coordinates of the clusters</span>
+<span class="sd">        :type coords: np.array</span>
+<span class="sd">        :param p: Metric of the clusters</span>
+<span class="sd">        :type p: np.array</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">p</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">coords</span><span class="p">,</span> <span class="n">p</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="write_PDB_clusters"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.write_PDB_clusters">[docs]</a><span class="k">def</span> <span class="nf">write_PDB_clusters</span><span class="p">(</span><span class="n">pmf_xyzg</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;clusters.pdb&quot;</span><span class="p">,</span> <span class="n">use_beta</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">elements</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -750,7 +818,7 @@
 <span class="sd">        :type structure: str or Trajectory</span>
 <span class="sd">        :param output: Output where to write the object</span>
 <span class="sd">        :type output: str</span>
-<span class="sd">        :param topology: Topoloy-like object</span>
+<span class="sd">        :param topology: Topology-like object</span>
 <span class="sd">        :type topology: list</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">PDB</span> <span class="o">=</span> <span class="n">atomset</span><span class="o">.</span><span class="n">PDB</span><span class="p">()</span>
@@ -764,7 +832,7 @@
 
 <span class="sd">        :param conformation: Mdtraj trajectory object to write</span>
 <span class="sd">        :type structure: str or Trajectory</span>
-<span class="sd">        :param topology: Topoloy-like object</span>
+<span class="sd">        :param topology: Topology-like object</span>
 <span class="sd">        :type topology: list</span>
 
 <span class="sd">        :returns: str -- The pdb representation of a snapshot from a xtc</span>
@@ -901,19 +969,25 @@
     <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">trajectoryFile</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span></div>
 
 
-<div class="viewcode-block" id="loadtxtfile"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.loadtxtfile">[docs]</a><span class="k">def</span> <span class="nf">loadtxtfile</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+<div class="viewcode-block" id="loadtxtfile"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.loadtxtfile">[docs]</a><span class="k">def</span> <span class="nf">loadtxtfile</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">usecols</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">postprocess</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Load a table file from a text file</span>
 
 <span class="sd">        :param filename: Name of the file to load</span>
 <span class="sd">        :type filename: str</span>
+<span class="sd">        :param usecols: Which columns to read, with 0 being the first</span>
+<span class="sd">        :type usecols: int</span>
+<span class="sd">        :param postprocess: Whether to add an extra dimension if only one line present in the txt file</span>
+<span class="sd">        :type postprocess: bool</span>
+<span class="sd">        :param dtype: Data-type of the resulting array, (default float)</span>
+<span class="sd">        :type dtype: data-type</span>
 
 <span class="sd">        :returns: np.ndarray -- Contents of the text file</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
-    <span class="k">return</span> <span class="n">data</span></div>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">missing_values</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="s2">&quot;--&quot;</span><span class="p">),</span> <span class="n">filling_values</span><span class="o">=</span><span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="n">usecols</span><span class="o">=</span><span class="n">usecols</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">metrics</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">postprocess</span><span class="p">:</span>
+        <span class="n">metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">return</span> <span class="n">metrics</span></div>
 
 
 <div class="viewcode-block" id="writeNewConstraints"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.writeNewConstraints">[docs]</a><span class="k">def</span> <span class="nf">writeNewConstraints</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">constraints</span><span class="p">):</span>
@@ -937,8 +1011,7 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Read the new constraints from disk</span>
 
-<span class="sd">        :param folder: Name of the folder where to write the</span>
-<span class="sd">            processorsToClusterMapping</span>
+<span class="sd">        :param folder: Name of the folder where to write the constraints</span>
 <span class="sd">        :type folder: str</span>
 <span class="sd">        :param filename: Name of the file where to write the constraints</span>
 <span class="sd">        :type filename: str</span>
@@ -971,6 +1044,128 @@
         <span class="k">return</span> <span class="n">readClusteringObject</span><span class="p">(</span><span class="n">topology_file</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The topology parameter needs to be the path to a pickled Topology object or a pdb!&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_available_backend"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.get_available_backend">[docs]</a><span class="k">def</span> <span class="nf">get_available_backend</span><span class="p">():</span>
+    <span class="n">machine</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">getfqdn</span><span class="p">()</span>
+    <span class="k">if</span> <span class="s2">&quot;bsccv&quot;</span> <span class="ow">in</span> <span class="n">machine</span><span class="p">:</span>
+        <span class="c1"># life cluster</span>
+        <span class="k">return</span> <span class="s2">&quot;webagg&quot;</span>
+    <span class="k">elif</span> <span class="s2">&quot;mn.bsc&quot;</span> <span class="ow">in</span> <span class="n">machine</span><span class="p">:</span>
+        <span class="c1"># nord3</span>
+        <span class="k">return</span> <span class="s2">&quot;tkagg&quot;</span>
+    <span class="k">elif</span> <span class="s2">&quot;bsc.mn&quot;</span> <span class="ow">in</span> <span class="n">machine</span><span class="p">:</span>
+        <span class="c1"># MNIV</span>
+        <span class="k">return</span> <span class="s2">&quot;qt5agg&quot;</span>
+    <span class="k">elif</span> <span class="s2">&quot;bullx&quot;</span> <span class="ow">in</span> <span class="n">machine</span><span class="p">:</span>
+        <span class="c1"># MinoTauro</span>
+        <span class="k">return</span> <span class="s2">&quot;gtkagg&quot;</span>
+    <span class="k">elif</span> <span class="s2">&quot;power&quot;</span> <span class="ow">in</span> <span class="n">machine</span><span class="p">:</span>
+        <span class="c1"># CTE-Power</span>
+        <span class="k">return</span> <span class="s2">&quot;tkagg&quot;</span></div>
+
+
+<div class="viewcode-block" id="get_workers_output"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.get_workers_output">[docs]</a><span class="k">def</span> <span class="nf">get_workers_output</span><span class="p">(</span><span class="n">workers</span><span class="p">,</span> <span class="n">wait_time</span><span class="o">=</span><span class="mi">60</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the output of a pool of workers without serializing the program at the get.</span>
+
+<span class="sd">        :param workers: List of AsyncResult objects created when passing work to the pool</span>
+<span class="sd">        :type workers: list</span>
+<span class="sd">        :param wait_time: Number of second to wait before checking if next worker is finished</span>
+<span class="sd">        :type wait_time: int</span>
+
+<span class="sd">        :returns: list -- List containing the output of all workers, if the function</span>
+<span class="sd">            passed to the pool had no return value it will be a list of None objects</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># fill the list of results with placeholder zeros</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">workers</span><span class="p">))]</span>
+    <span class="n">to_finish</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">workers</span><span class="p">)))</span>
+    <span class="c1"># loop over all processes of the pool, waiting for a minute and checking</span>
+    <span class="c1"># if they are finished, this allows to query and reraise exceptions</span>
+    <span class="c1"># withiout waiting for previous succesfull workers to finish</span>
+    <span class="k">while</span> <span class="n">to_finish</span><span class="p">:</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">to_finish</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">workers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">wait_time</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">workers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">ready</span><span class="p">():</span>
+            <span class="c1"># mantain the order of the results in which they were submitted,</span>
+            <span class="c1"># this is assumed in some places where multiprocessing is used</span>
+            <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">workers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># if worker is not done append it again at the end of the queue</span>
+            <span class="n">to_finish</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">results</span></div>
+
+
+<div class="viewcode-block" id="glob_sorted"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.glob_sorted">[docs]</a><span class="k">def</span> <span class="nf">glob_sorted</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Run glob and sort the output to ensure cross-platform compatibility</span>
+
+<span class="sd">        :param pattern: pathname to match files</span>
+<span class="sd">        :type pattern: str</span>
+<span class="sd">        :param reverse: If set to True, then the list elements are sorted as if each comparison were reversed</span>
+<span class="sd">        :type reverse: bool</span>
+<span class="sd">        :param key: Function of one argument that is used to extract a comparison key from each list element</span>
+<span class="sd">        :type key: function</span>
+
+<span class="sd">        :returns: list -- List containing the output of all workers, if the function</span>
+<span class="sd">            passed to the pool had no return value it will be a list of None objects</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="n">reverse</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_string_from_array"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.get_string_from_array">[docs]</a><span class="k">def</span> <span class="nf">get_string_from_array</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;, &quot;</span><span class="p">,</span> <span class="n">decimals</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">remove_newlines</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a string representation of an array, specifiying separator and</span>
+<span class="sd">        decimal rounding</span>
+
+<span class="sd">        :param array: Input array</span>
+<span class="sd">        :type array: ndarray or list</span>
+<span class="sd">        :param sep: Separator</span>
+<span class="sd">        :type sep: str</span>
+<span class="sd">        :param decimals: Number of decimals to round the array</span>
+<span class="sd">        :type decimals: int</span>
+<span class="sd">        :param remove_newlines: Wheter to remove the newlines between dimensions</span>
+<span class="sd">        :type remove_newlines: bool</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># ensure input is a numpy array</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+    <span class="n">representation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array2string</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="n">decimals</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="n">sep</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">remove_newlines</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">representation</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">representation</span></div>
+
+
+<div class="viewcode-block" id="get_file_name_extension"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.get_file_name_extension">[docs]</a><span class="k">def</span> <span class="nf">get_file_name_extension</span><span class="p">(</span><span class="n">full_path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the name and the extension of the file pointed by full_path</span>
+
+<span class="sd">        :param full_path: Path to the file</span>
+<span class="sd">        :type full_path: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">full_path</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="get_file_name"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.get_file_name">[docs]</a><span class="k">def</span> <span class="nf">get_file_name</span><span class="p">(</span><span class="n">full_path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the name of the file pointed by full_path</span>
+
+<span class="sd">        :param full_path: Path to the file</span>
+<span class="sd">        :type full_path: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">get_file_name_extension</span><span class="p">(</span><span class="n">full_path</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">name</span></div>
+
+
+<div class="viewcode-block" id="get_file_extension"><a class="viewcode-back" href="../../../AdaptivePELE.utilities.html#AdaptivePELE.utilities.utilities.get_file_extension">[docs]</a><span class="k">def</span> <span class="nf">get_file_extension</span><span class="p">(</span><span class="n">full_path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the extension of the file pointed by full_path</span>
+
+<span class="sd">        :param full_path: Path to the file</span>
+<span class="sd">        :type full_path: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">ext</span> <span class="o">=</span> <span class="n">get_file_name_extension</span><span class="p">(</span><span class="n">full_path</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ext</span></div>
 </pre></div>
 
            </div>
@@ -982,7 +1177,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2017, Daniel Lecina, Joan Francesc Gilabert.
+        &copy; Copyright 2019, Daniel Lecina, Joan Francesc Gilabert.
 
     </p>
   </div>

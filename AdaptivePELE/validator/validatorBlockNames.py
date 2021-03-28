@@ -175,11 +175,13 @@ class SimulationParams:
         "mpiParameters": "basestring",
         "exitCondition": "dict",
         "trajectoryName": "basestring",
-        "ligandCharge": "numbers.Real",
-        "ligandName": "basestring",
+        "ligandCharge": "list|numbers.Real",
+        "ligandName": "list|basestring",
+        "cofactors": "list",
+        "ligandsToRestrict": "list",
         "nonBondedCutoff": "numbers.Real",
         "timeStep": "numbers.Real",
-        "Temperature": "numbers.Real",
+        "temperature": "numbers.Real",
         "runningPlatform": "basestring",
         "minimizationIterations": "numbers.Real",
         "reporterFrequency": "numbers.Real",
@@ -199,6 +201,7 @@ class SimulationParams:
         "format": "basestring",
         "constraints": "list",
         "boxType": "basestring",
+        "postprocessing": "bool",
         "cylinderBases": "list"
     }
     exitCondition = {

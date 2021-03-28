@@ -78,9 +78,9 @@ def __computeDG(trajWildcard):
 
 def __getDstName(bootstrap, i, trajFile):
     # Equiv lambda
-    # getDstName = lambda bootstrap, i, trajFile: "traj_.%d.dat"%i if bootstrap else os.path.split(trajFile)[-1]
+    # getDstName = lambda bootstrap, i, trajFile: "traj_%d.dat"%i if bootstrap else os.path.split(trajFile)[-1]
     if bootstrap:
-        return "traj_.%d.dat" % i
+        return "traj_%d.dat" % i
     else:
         return os.path.split(trajFile)[-1]
 
@@ -218,7 +218,12 @@ def getRepresentativePDBs(filesWildcard, run):
     with open("representative_structures/representative_structures_%d.dat" % run, "w") as fw:
         fw.write("Cluster\tEpoch\tTrajectory\tSnapshot\n")
         for clNum in range(numClusters):
-            fw.write("%d\t" % clNum+"\t".join(centersInfo[clNum]["structure"])+"\n")
+            try:
+                fw.write("%d\t" % clNum+"\t".join(centersInfo[clNum]["structure"])+"\n")
+            except TypeError:
+                print("Structure not found for cluster %d" % clNum)
+                print([np.sum(dt == clNum) for dt in dtrajs])
+                raise
 
 
 def estimateDG(parameters, cleanupClusterCentersAtStart=False):

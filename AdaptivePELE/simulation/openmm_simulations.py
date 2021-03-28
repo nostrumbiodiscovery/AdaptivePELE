@@ -47,8 +47,8 @@ def get_traceback(f):
 
 
 class ForceReporter(object):
-    def __init__(self, file, reportInterval):
-        self._out = open(file, 'w')
+    def __init__(self, file_name, reportInterval):
+        self._out = open(file_name, 'w')
         self._reportInterval = reportInterval
 
     def __del__(self):
@@ -63,6 +63,7 @@ class ForceReporter(object):
         forces = state.getForces().value_in_unit(unit.kilojoules/unit.mole/unit.nanometer)
         for i, f in enumerate(forces):
             self._out.write('%d %g %g %g\n' % (i, f[0], f[1], f[2]))
+        self._out.flush()
 
 
 class XTCReporter(_BaseReporter):
@@ -80,24 +81,46 @@ class XTCReporter(_BaseReporter):
         :type atomSubset: arrray_like
         :param append: Whether to append the trajectory to a previously existing one
         :type append: bool
-        """
+    """
     @property
     def backend(self):
         return XTCTrajectoryFile
 
-    def __init__(self, file, reportInterval, atomSubset=None, append=False):
+    def __init__(self, file_name, reportInterval, atomSubset=None, append=False, enforcePeriodicBox=True):
         if append:
-            if isinstance(file, basestring):
-                with self.backend(file, 'r') as f:
+            if isinstance(file_name, basestring):
+                with self.backend(file_name, 'r') as f:
                     contents = f.read()
-            elif isinstance(file, self.backend):
+            elif isinstance(file_name, self.backend):
                 raise ValueError("Currently passing an XTCTrajectoryFile in append mode is not supported, please pass a string with the filename")
             else:
-                raise TypeError("I don't know how to handle %s" % file)
-        super(XTCReporter, self).__init__(file, reportInterval, coordinates=True, time=True, cell=True, potentialEnergy=False,
+                raise TypeError("I don't know how to handle %s" % file_name)
+        super(XTCReporter, self).__init__(file_name, reportInterval, coordinates=True, time=True, cell=True, potentialEnergy=False,
                                           kineticEnergy=False, temperature=False, velocities=False, atomSubset=atomSubset)
+        self._enforcePeriodicBox = enforcePeriodicBox
         if append:
             self._traj_file.write(*contents)
+
+    def describeNextReport(self, simulation):
+        """
+            Get information about the next report this object will generate.
+
+            Parameters
+            ----------
+            simulation : Simulation
+                The Simulation to generate a report for
+
+            Returns
+            -------
+            tuple
+                A six element tuple. The first element is the number of steps
+                until the next report. The next four elements specify whether
+                that report will require positions, velocities, forces, and
+                energies respectively.  The final element specifies whether
+                positions should be wrapped to lie in a single periodic box.
+        """
+        steps = self._reportInterval - simulation.currentStep % self._reportInterval
+        return (steps, self._coordinates, self._velocities, False, self._needEnergy, self._enforcePeriodicBox)
 
     def report(self, simulation, state):
         """
@@ -161,6 +184,7 @@ class CustomStateDataReporter(app.StateDataReporter):
         self._initialClockTime = None
         self._initialSimulationTime = None
         self._initialSteps = None
+        self._hasInitialized = None
 
     def report(self, simulation, state):
         """Generate a report.
@@ -285,6 +309,10 @@ def minimization(prmtop, inpcrd, PLATFORM, constraints, parameters, platformProp
 
     :return: The minimized OpenMM simulation object
     """
+    if parameters.ligandName is None:
+        ligandNames = []
+    else:
+        ligandNames = parameters.ligandName
     system = prmtop.createSystem(nonbondedMethod=app.PME,
                                  nonbondedCutoff=parameters.nonBondedCutoff * unit.angstroms, constraints=app.HBonds)
     integrator = mm.VerletIntegrator(parameters.timeStep * unit.femtoseconds)
@@ -295,7 +323,7 @@ def minimization(prmtop, inpcrd, PLATFORM, constraints, parameters, platformProp
     if parameters.boxCenter or parameters.cylinderBases:
         # the last parameter is only used to print a message, by passing a
         # value different than 0 we avoid having too many prints
-        addDummyAtomToSystem(system, prmtop.topology, inpcrd.positions, parameters.ligandName, dummy, 3)
+        addDummyAtomToSystem(system, prmtop.topology, inpcrd.positions, ligandNames, dummy, 3)
     if constraints:
         # Add positional restraints to protein backbone
         force = mm.CustomExternalForce(str("k*periodicdistance(x, y, z, x0, y0, z0)^2"))
@@ -305,12 +333,18 @@ def minimization(prmtop, inpcrd, PLATFORM, constraints, parameters, platformProp
         force.addPerParticleParameter(str("z0"))
         atomNames = ('CA', 'C', 'N', 'O')
         for j, atom in enumerate(prmtop.topology.atoms()):
-            if (atom.name in atomNames and atom.residue.name != "HOH") or (atom.residue.name == parameters.ligandName and atom.element.symbol != "H"):
+            if (atom.name in atomNames and atom.residue.name != "HOH") or (atom.residue.name in ligandNames and atom.element.symbol != "H"):
                 force.addParticle(j, inpcrd.positions[j].value_in_unit(unit.nanometers))
         system.addForce(force)
     simulation = app.Simulation(prmtop.topology, system, integrator, PLATFORM, platformProperties=platformProperties)
-    if inpcrd.boxVectors is not None:
-        simulation.context.setPeriodicBoxVectors(*inpcrd.boxVectors)
+    try:
+        # if the inpcrd object passed does not in fact come from a inpcrd file
+        # but from a pdb it does not have the boxVectors attribute
+        boxVectors = inpcrd.boxVectors
+    except AttributeError:
+        boxVectors = None
+    if boxVectors is not None:
+        simulation.context.setPeriodicBoxVectors(*boxVectors)
     simulation.context.setPositions(inpcrd.positions)
     simulation.minimizeEnergy(maxIterations=parameters.minimizationIterations)
     return simulation
@@ -342,6 +376,10 @@ def NVTequilibration(topology, positions, PLATFORM, simulation_steps, constraint
 
     :return: The equilibrated OpenMM simulation object
     """
+    if parameters.ligandName is None:
+        ligandNames = []
+    else:
+        ligandNames = parameters.ligandName
     system = topology.createSystem(nonbondedMethod=app.PME,
                                    nonbondedCutoff=parameters.nonBondedCutoff * unit.angstroms,
                                    constraints=app.HBonds)
@@ -353,7 +391,7 @@ def NVTequilibration(topology, positions, PLATFORM, simulation_steps, constraint
     if parameters.boxCenter or parameters.cylinderBases:
         # the last parameter is only used to print a message, by passing a
         # value different than 0 we avoid having too many prints
-        addDummyAtomToSystem(system, topology.topology, positions, parameters.ligandName, dummy, 3)
+        addDummyAtomToSystem(system, topology.topology, positions, ligandNames, dummy, 3)
 
     if constraints:
         force = mm.CustomExternalForce(str("k*periodicdistance(x, y, z, x0, y0, z0)^2"))
@@ -362,7 +400,7 @@ def NVTequilibration(topology, positions, PLATFORM, simulation_steps, constraint
         force.addPerParticleParameter(str("y0"))
         force.addPerParticleParameter(str("z0"))
         for j, atom in enumerate(topology.topology.atoms()):
-            if (atom.name in ('CA', 'C', 'N', 'O') and atom.residue.name != "HOH") or (atom.residue.name == parameters.ligandName and atom.element.symbol != "H"):
+            if (atom.name in ('CA', 'C', 'N', 'O') and atom.residue.name != "HOH") or (atom.residue.name in ligandNames and atom.element.symbol != "H"):
                 force.addParticle(j, positions[j].value_in_unit(unit.nanometers))
         system.addForce(force)
     simulation = app.Simulation(topology.topology, system, integrator, PLATFORM, platformProperties=platformProperties)
@@ -408,6 +446,10 @@ def NPTequilibration(topology, positions, PLATFORM, simulation_steps, constraint
 
     :return: The equilibrated OpenMM simulation object
     """
+    if parameters.ligandName is None:
+        ligandNames = []
+    else:
+        ligandNames = parameters.ligandName
     system = topology.createSystem(nonbondedMethod=app.PME,
                                    nonbondedCutoff=parameters.nonBondedCutoff * unit.angstroms,
                                    constraints=app.HBonds)
@@ -420,7 +462,7 @@ def NPTequilibration(topology, positions, PLATFORM, simulation_steps, constraint
     if parameters.boxCenter or parameters.cylinderBases:
         # the last parameter is only used to print a message, by passing a
         # value different than 0 we avoid having too many prints
-        addDummyAtomToSystem(system, topology.topology, positions, parameters.ligandName, dummy, 3)
+        addDummyAtomToSystem(system, topology.topology, positions, ligandNames, dummy, 3)
 
     if constraints:
         force = mm.CustomExternalForce(str("k*periodicdistance(x, y, z, x0, y0, z0)^2"))
@@ -429,7 +471,7 @@ def NPTequilibration(topology, positions, PLATFORM, simulation_steps, constraint
         force.addPerParticleParameter(str("y0"))
         force.addPerParticleParameter(str("z0"))
         for j, atom in enumerate(topology.topology.atoms()):
-            if atom.name == 'CA' or (atom.residue.name == parameters.ligandName and atom.element.symbol != "H"):
+            if atom.name == 'CA' or (atom.residue.name in ligandNames and atom.element.symbol != "H"):
                 force.addParticle(j, positions[j].value_in_unit(unit.nanometers))
         system.addForce(force)
     simulation = app.Simulation(topology.topology, system, integrator, PLATFORM, platformProperties=platformProperties)
@@ -450,7 +492,7 @@ def NPTequilibration(topology, positions, PLATFORM, simulation_steps, constraint
 
 
 @get_traceback
-def runProductionSimulation(equilibrationFiles, workerNumber, outputDir, seed, parameters, reportFileName, checkpoint, ligandName, replica_id, trajsPerReplica, restart=False):
+def runProductionSimulation(equilibrationFiles, workerNumber, outputDir, seed, parameters, reportFileName, checkpoint, ligandName, replica_id, trajsPerReplica, epoch_number, restart=False):
     """
     Functions that runs the production run at NPT conditions.
     If a boxRadius is defined in the parameters section, a Flat-bottom harmonic restrains will be applied between
@@ -470,23 +512,28 @@ def runProductionSimulation(equilibrationFiles, workerNumber, outputDir, seed, p
     :type reportFileName: str
     :param checkpoint: Path to the checkpoint from where the production run will be restarted (Optional)
     :type checkpoint: str
-    :param ligandName: Code Name for the ligand
-    :type ligandName: str
+    :param ligandName: Code Name for the ligands
+    :type ligandName: list
     :param replica_id: Id of the replica running
     :type replica_id: int
     :param trajsPerReplica: Number of trajectories per replica
     :type trajsPerReplica: int
     :param restart: Whether the simulation run has to be restarted or not
     :type restart: bool
+    :param epoch_number: Number of the epoch
+    :type epoch_number: int
 
     """
+    if parameters.ligandName is None:
+        ligandNames = []
+    else:
+        ligandNames = parameters.ligandName
     # this number gives the number of the subprocess in the given node
     deviceIndex = workerNumber
     # this one gives the number of the subprocess in the overall simulation (i.e
     # the trajectory file number)
     workerNumber += replica_id*trajsPerReplica + 1
     prmtop, pdb = equilibrationFiles
-    prmtop = app.AmberPrmtopFile(prmtop)
     trajName = os.path.join(outputDir, constants.AmberTemplates.trajectoryTemplate % (workerNumber, parameters.format))
     stateReporter = os.path.join(outputDir, "%s_%s" % (reportFileName, workerNumber))
     checkpointReporter = os.path.join(outputDir, constants.AmberTemplates.CheckPointReporterTemplate % workerNumber)
@@ -496,18 +543,27 @@ def runProductionSimulation(equilibrationFiles, workerNumber, outputDir, seed, p
     # probably due to the fact that openmm was built with python2 in my
     # computer, will need to test thoroughly with python3)
     pdb = app.PDBFile(str(pdb))
+    prmtop = app.AmberPrmtopFile(prmtop)
     PLATFORM = mm.Platform_getPlatformByName(str(parameters.runningPlatform))
     if parameters.runningPlatform == "CUDA":
         platformProperties = {"Precision": "mixed", "DeviceIndex": getDeviceIndexStr(deviceIndex, parameters.devicesPerTrajectory, devicesPerReplica=parameters.maxDevicesPerReplica), "UseCpuPme": "false"}
     else:
         platformProperties = {}
+
+    dummies = None
     if parameters.boxCenter or parameters.cylinderBases:
         dummies = findDummyAtom(prmtop)
+
+    if epoch_number > 0:
+        min_sim = minimization(prmtop, pdb, PLATFORM, parameters.constraintsMin, parameters, platformProperties, dummy=dummies)
+        positions = min_sim.context.getState(getPositions=True).getPositions()
+    else:
+        positions = pdb.positions
     system = prmtop.createSystem(nonbondedMethod=app.PME,
                                  nonbondedCutoff=parameters.nonBondedCutoff * unit.angstroms,
                                  constraints=app.HBonds, removeCMMotion=True)
     if parameters.boxCenter or parameters.cylinderBases:
-        addDummyAtomToSystem(system, prmtop.topology, pdb.positions, parameters.ligandName, dummies, deviceIndex)
+        addDummyAtomToSystem(system, prmtop.topology, positions, ligandNames, dummies, deviceIndex)
 
     system.addForce(mm.AndersenThermostat(parameters.Temperature * unit.kelvin, 1 / unit.picosecond))
     integrator = mm.VerletIntegrator(parameters.timeStep * unit.femtoseconds)
@@ -516,18 +572,20 @@ def runProductionSimulation(equilibrationFiles, workerNumber, outputDir, seed, p
         # Add the specified constraints to the system
         addConstraints(system, prmtop.topology, parameters.constraints)
 
-    if parameters.boxCenter or parameters.cylinderBases:
-        if parameters.boxType == blockNames.SimulationParams.sphere:
-            if deviceIndex == 0:
-                utilities.print_unbuffered("Adding spherical ligand box")
-            assert len(dummies) == 1
-            addLigandBox(prmtop.topology, pdb.positions, system, parameters.ligandName, dummies[0], parameters.boxRadius, deviceIndex)
-        elif parameters.boxType == blockNames.SimulationParams.cylinder:
-            if deviceIndex == 0:
-                utilities.print_unbuffered("Adding cylinder ligand box")
-            addLigandCylinderBox(prmtop.topology, pdb.positions, system, parameters.ligandName, dummies, parameters.boxRadius, deviceIndex)
+    if (parameters.boxCenter or parameters.cylinderBases) and parameters.ligandsToRestrict is not None:
+        for ligand_resname in parameters.ligandsToRestrict:
+            if parameters.boxType == blockNames.SimulationParams.sphere:
+                if deviceIndex == 0:
+                    utilities.print_unbuffered("Adding spherical ligand box")
+                assert len(dummies) == 1
+                addLigandBox(prmtop.topology, positions, system, ligand_resname, dummies[0], parameters.boxRadius, deviceIndex)
+            elif parameters.boxType == blockNames.SimulationParams.cylinder:
+                if deviceIndex == 0:
+                    utilities.print_unbuffered("Adding cylinder ligand box")
+                addLigandCylinderBox(prmtop.topology, positions, system, ligand_resname, dummies, parameters.boxRadius, deviceIndex)
+
     simulation = app.Simulation(prmtop.topology, system, integrator, PLATFORM, platformProperties=platformProperties)
-    simulation.context.setPositions(pdb.positions)
+    simulation.context.setPositions(positions)
     if restart:
         with open(str(checkpoint), 'rb') as check:
             simulation.context.loadCheckpoint(check.read())
@@ -536,9 +594,9 @@ def runProductionSimulation(equilibrationFiles, workerNumber, outputDir, seed, p
         simulation.context.setVelocitiesToTemperature(parameters.Temperature * unit.kelvin, seed)
         stateData = open(str(stateReporter), "w")
     if parameters.format == "xtc":
-        simulation.reporters.append(XTCReporter(str(trajName), parameters.reporterFreq, append=restart))
+        simulation.reporters.append(XTCReporter(str(trajName), parameters.reporterFreq, append=restart, enforcePeriodicBox=parameters.postprocessing))
     elif parameters.format == "dcd":
-        simulation.reporters.append(app.DCDReporter(str(trajName), parameters.reporterFreq, append=restart, enforcePeriodicBox=True))
+        simulation.reporters.append(app.DCDReporter(str(trajName), parameters.reporterFreq, append=restart, enforcePeriodicBox=parameters.postprocessing))
 
     simulation.reporters.append(app.CheckpointReporter(str(checkpointReporter), parameters.reporterFreq))
     simulation.reporters.append(CustomStateDataReporter(stateData, parameters.reporterFreq, step=True,
@@ -546,6 +604,7 @@ def runProductionSimulation(equilibrationFiles, workerNumber, outputDir, seed, p
                                                         volume=True, remainingTime=True, speed=True,
                                                         totalSteps=simulation_length, separator="\t",
                                                         append=restart, initialStep=lastStep))
+
     if workerNumber == 1:
         frequency = min(10 * parameters.reporterFreq, parameters.productionLength)
         simulation.reporters.append(app.StateDataReporter(sys.stdout, frequency, step=True))
@@ -564,10 +623,14 @@ def getLastStep(reportfile):
     try:
         with open(reportfile, "r") as inp:
             report = inp.read()
-        last_step = report.split("\n")[-2].split("\t")[0]
+        lines = report.split("\n")
+        if len(lines) <= 2:
+            # filter if only a header is found
+            return 0
+        last_step = int(lines[-2].split("\t")[0])
     except FileNotFoundError:
-        last_step = 0
-    return int(last_step)
+        return 0
+    return last_step
 
 
 def getDeviceIndexStr(deviceIndex, devicesPerTraj, devicesPerReplica=None):
@@ -612,11 +675,10 @@ def addConstraints(system, topology, constraints):
         atom_str = "%s:%s:%d" % (atom.name, atom.residue.name, atom.residue.index+1)
         if atom_str in atomIndices:
             atomIndices[atom_str] = atom.index
-
     for constraint in constraints:
         assert atomIndices[constraint[0]] != atomIndices[constraint[1]], (constraint, atomIndices[constraint[0]], atomIndices[constraint[1]])
-        assert atomIndices[constraint[0]] is not None
-        assert atomIndices[constraint[1]] is not None
+        assert atomIndices[constraint[0]] is not None, (constraint, atomIndices[constraint[0]])
+        assert atomIndices[constraint[1]] is not None, (constraint, atomIndices[constraint[1]])
         # pass distance constraint in nm
         system.addConstraint(atomIndices[constraint[0]], atomIndices[constraint[1]], float(constraint[2])/10.0)
 
@@ -637,14 +699,12 @@ def findDummyAtom(model, name=constants.AmberTemplates.DUM_atom, resname=constan
             dummies.append(atom.index)
     if dummies:
         return dummies
-    else:
-        return None
 
 
 def addDummyAtomToSystem(system, topology, positions, resname, dummies, worker):
     protein_CAs = []
     for atom in topology.atoms():
-        if atom.residue.name not in ("HOH", "Cl-", "Na+", resname) and atom.name == "CA":
+        if (atom.residue.name not in ("HOH", "Cl-", "Na+") or atom.residue.name not in resname) and atom.name == "CA":
             protein_CAs.append(atom.index)
     modul = len(protein_CAs) % 20
     step_to_use = int((len(protein_CAs)-modul)/20)
@@ -688,12 +748,11 @@ def addLigandBox(topology, positions, system, resname, dummy, radius, worker):
     forceFB.addPerBondParameter("k_box")
     forceFB.addPerBondParameter("r0")
     forceFB.addBond(dummy, ligand_atom, [5.0 * unit.kilocalories_per_mole / unit.angstroms ** 2, radius*unit.angstroms])
-    forceFB.setUsesPeriodicBoundaryConditions(True)
     system.addForce(forceFB)
 
 
 def addLigandCylinderBox(topology, positions, system, resname, dummies, radius, worker):
-    center, base, top_base = dummies
+    center, base, _ = dummies
     masses = []
     coords = np.ndarray(shape=(0, 3))
     ligand_atoms = []
@@ -714,9 +773,8 @@ def addLigandCylinderBox(topology, positions, system, resname, dummies, radius, 
     forceFB = mm.CustomCompoundBondForce(3, '(step(r_par-2*r_l)+step(-r_par))*(k_box/2) * (r_par-r_l)^2; r_par=ax*dx+ay*dy+az*dz; ax=(x1-x2)/l; ay=(y1-y2)/l; az=(z1-z2)/l; dx=x3-x2; dy=y3-y2; dz=z3-z2; l=distance(p1, p2)')
     forceFB.addPerBondParameter("k_box")
     forceFB.addPerBondParameter("r_l")
-    #forceFB.addBond(center, ligand_atom, [5.0 * unit.kilocalories_per_mole / unit.angstroms ** 2, length*unit.nanometers])
+    # forceFB.addBond(center, ligand_atom, [5.0 * unit.kilocalories_per_mole / unit.angstroms ** 2, length*unit.nanometers])
     forceFB.addBond([center, base, ligand_atom], [5.0 * unit.kilocalories_per_mole / unit.angstroms ** 2, length*unit.nanometers])
-    forceFB.setUsesPeriodicBoundaryConditions(True)
     system.addForce(forceFB)
     force_side = mm.CustomCompoundBondForce(3, 'step(r_normal-r0)*(k_box/2) * (r_normal-r0)^2; r_normal=sqrt((ay*dz-az*dy)^2+(az*dx-ax*dz)^2+(ax*dy-ay*dx)^2); ax=(x1-x2)/l; ay=(y1-y2)/l; az=(z1-z2)/l; dx=x3-x2; dy=y3-y2; dz=z3-z2; l=distance(p1, p2)')
     force_side.addPerBondParameter("k_box")
@@ -724,7 +782,6 @@ def addLigandCylinderBox(topology, positions, system, resname, dummies, radius, 
     # the order of the particles involved are center of the cilinder, base and
     # atom to constrain (ligand)
     force_side.addBond([center, base, ligand_atom], [5.0 * unit.kilocalories_per_mole / unit.angstroms ** 2, radius*unit.angstroms])
-    force_side.setUsesPeriodicBoundaryConditions(True)
     system.addForce(force_side)
 
 
@@ -733,3 +790,19 @@ def addDummyPositions(pos, center):
     quant = unit.quantity.Quantity(value=tuple(center), unit=unit.angstrom)
     pos2.append(quant.in_units_of(unit.nanometers))
     return pos2
+
+
+def debugSimulation(simulation, outputDir, workerNumber, parameters):
+    """
+        Add some debugging information for MD simulations that crash
+    """
+    simulation.reporters.append(ForceReporter(str(os.path.join(outputDir, "forces_%d" % workerNumber)), parameters.reporterFreq))
+    state = simulation.context.getState(getEnergy=True, getPositions=True)
+    utilities.print_unbuffered("Trajectory", workerNumber, "kinetic energy", state.getKineticEnergy(), "potential energy", state.getPotentialEnergy())
+    with open(str(os.path.join(outputDir, "initial_%d.pdb" % workerNumber)), 'w') as fw:
+        app.PDBFile.writeFile(simulation.topology, state.getPositions(), fw)
+    simulation.minimizeEnergy(maxIterations=parameters.minimizationIterations)
+    state = simulation.context.getState(getEnergy=True, getPositions=True)
+    utilities.print_unbuffered("After minimizing Trajectory", workerNumber, "kinetic energy", state.getKineticEnergy(), "potential energy", state.getPotentialEnergy())
+    with open(str(os.path.join(outputDir, "initial_min_%d.pdb" % workerNumber)), 'w') as fw:
+        app.PDBFile.writeFile(simulation.topology, state.getPositions(), fw)

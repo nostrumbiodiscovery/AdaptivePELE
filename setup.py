@@ -8,24 +8,11 @@ try:
     from Cython.Build import cythonize
     from Cython.Distutils import build_ext
 except ImportError:
+    print("Cython not found")
     use_cython = False
 else:
     use_cython = True
-from distutils.command.sdist import sdist as _sdist
 import AdaptivePELE as a
-
-# Run the following line to compile atomset package
-# python setup.py build_ext --inplace
-
-
-class sdist(_sdist):
-    def run(self):
-        # Make sure the compiled Cython files in the distribution are
-        # up-to-date
-        from Cython.Build import cythonize
-        cythonize(['cython/mycythonmodule.pyx'])
-        _sdist.run(self)
-        cmdclass['sdist'] = sdist
 
 here = path.abspath(path.dirname(__file__))
 ext_modules = []
@@ -61,7 +48,7 @@ setup(
     license='',
     packages=find_packages(exclude=['docs', 'tests']),
     package_data={"AdaptivePELE/atomset": ['*.pxd']},
-    install_requires=['numpy', 'mdtraj', 'scipy'],
+    install_requires=['numpy', 'mdtraj', 'scipy', 'six', 'future'],
     cmdclass=cmdclass,
     ext_modules=ext_modules,  # accepts a glob pattern
     include_dirs=[numpy.get_include()],
@@ -77,5 +64,4 @@ setup(
     'Source': 'https://github.com/AdaptivePELE/AdaptivePELE',
     'Tracker': 'https://github.com/AdaptivePELE/AdaptivePELE/issues',
 },
-
 )

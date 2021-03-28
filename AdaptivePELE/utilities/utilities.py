@@ -1,18 +1,19 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import range
-from six import reraise as raise_
 import os
 import ast
 import sys
-import socket
-import shutil
 import glob
-import string
 import json
 import errno
-from scipy import linalg
+import socket
+import shutil
+import string
+from builtins import range
+import six
+from six import reraise as raise_
 import numpy as np
 import mdtraj as md
+from scipy import linalg
 try:
     import cPickle as pickle
 except ImportError:
@@ -38,7 +39,11 @@ class ImproperParameterValueException(Exception):
     __module__ = Exception.__module__
 
 
-class Topology:
+class UnspecifiedPELECrashException(Exception):
+    __module__ = Exception.__module__
+
+
+class Topology(object):
     """
         Container object that points to the topology used in each trajectory
     """
@@ -69,7 +74,7 @@ class Topology:
         """
             Dump the contents of the topology object using pickle
         """
-        writeObject(os.path.join(self.path, "topologies.pkl"), self)
+        writeObject(os.path.join(self.path, "topologies.pkl"), self, protocol=2)
 
     def setTopologies(self, topologyFiles, cleanFiles=True):
         """
@@ -247,7 +252,10 @@ def makeFolder(outputDir):
     try:
         os.makedirs(outputDir)
     except OSError as exc:
-        if exc.errno != errno.EEXIST:
+        # if at this point another process has created the folder we are already
+        # happy. If not, we complain
+        if exc.errno != errno.EEXIST or not os.path.isdir(outputDir):
+            print(exc.args)
             raise
 
 
@@ -314,6 +322,43 @@ def getTrajNum(trajFilename):
     return int(trajFilename.split("_")[-1][:-4])
 
 
+def getFileSuffix(filename, separator="_"):
+    """
+        Gets the suffix appendend to a file name
+
+        :param filename: filename
+        :type filename: str
+        :param separator: character used as separator for the suffix
+        :type separator: str
+
+        :returns: int -- Trajectory number
+    """
+    name, _ = os.path.splitext(filename)
+    return name.split(separator)[-1]
+
+def isReport(reportFilename):
+    """
+        Checks whether the file is a PELE report
+
+        :param reportFilename: Trajectory filename
+        :type reportFilename: str
+
+        :returns: bool -- Whether the file is a PELE report
+    """
+    return getFileSuffix(reportFilename).isdigit()
+
+def getReportNum(reportFilename):
+    """
+        Gets the report number
+
+        :param reportFilename: Trajectory filename
+        :type reportFilename: str
+
+        :returns: int -- Report number
+    """
+    return int(getFileSuffix(reportFilename))
+
+
 def getPrmtopNum(prmtopFilename):
     """
         Gets the prmtop number
@@ -362,7 +407,7 @@ def assertSymmetriesDict(symmetries, PDB):
         print("Symmetry dictionary correctly defined!")
 
 
-def getRMSD(traj, nativePDB, resname, symmetries, topology=None):
+def getRMSD(traj, nativePDB, resname, reschain, resnum, symmetries, topology=None):
     """
         Computes the RMSD of a trajectory, given a native and symmetries
 
@@ -370,8 +415,12 @@ def getRMSD(traj, nativePDB, resname, symmetries, topology=None):
         :type traj: str
         :param nativePDB:  Native PDB object
         :type native PDB: :py:class:`.PDB`
-        :param resname: Resname to compute its RMSD
+        :param resname: Residue name of the ligand in the system pdb
         :type resname: str
+        :param reschain: Chain name of the ligand in the system pdb
+        :type reschain: str
+        :param resnum: Residue number of the ligand in the system pdb
+        :type resnum: int
         :param symmetries: Symmetries dictionary list with independent symmetry groups
         :type symmetries: list of dict
         :param topology: Topology for non-pdb trajectories
@@ -385,7 +434,7 @@ def getRMSD(traj, nativePDB, resname, symmetries, topology=None):
     RMSDCalc = RMSDCalculator.RMSDCalculator(symmetries)
     for i, snapshot in enumerate(snapshots):
         snapshotPDB = atomset.PDB()
-        snapshotPDB.initialise(snapshot, resname=resname, topology=topology)
+        snapshotPDB.initialise(snapshot, resname=resname, chain=reschain, resnum=resnum, topology=topology)
 
         rmsds[i] = RMSDCalc.computeRMSD(nativePDB, snapshotPDB)
 
@@ -405,7 +454,11 @@ def readClusteringObject(clusteringObjectPath):
     """
     with open(clusteringObjectPath, 'rb') as f:
         try:
-            return pickle.load(f)
+            if six.PY2:
+                return pickle.load(f)
+            elif six.PY3:
+                # make python3 able to read python2-written pickles
+                return pickle.load(f, encoding="latin")
         except EOFError:
             t, v, tb = sys.exc_info()
             raise_(t, v, tb)
@@ -462,6 +515,21 @@ def gen_atom_name(index):
     ind2 = (index % 6760)
     ind3 = ind2 % 260
     return chr(65+ind1)+chr(65+ind2//260)+chr(65+ind3//10)+str(ind3 % 10)
+
+
+def join_coordinates_prob(coords, p):
+    """
+        Join a MxN numpy array representing some cluster center coordinates with
+        an 1XN array representing some metric of the clusters
+
+        :param coords: Coordinates of the clusters
+        :type coords: np.array
+        :param p: Metric of the clusters
+        :type p: np.array
+    """
+    if len(p.shape) < 2:
+        p = p[:, np.newaxis]
+    return np.hstack((coords, p))
 
 
 def write_PDB_clusters(pmf_xyzg, title="clusters.pdb", use_beta=False, elements=None):
@@ -610,7 +678,7 @@ def write_mdtraj_object_PDB(conformation, output, topology):
         :type structure: str or Trajectory
         :param output: Output where to write the object
         :type output: str
-        :param topology: Topoloy-like object
+        :param topology: Topology-like object
         :type topology: list
     """
     PDB = atomset.PDB()
@@ -624,7 +692,7 @@ def get_mdtraj_object_PDBstring(conformation, topology):
 
         :param conformation: Mdtraj trajectory object to write
         :type structure: str or Trajectory
-        :param topology: Topoloy-like object
+        :param topology: Topology-like object
         :type topology: list
 
         :returns: str -- The pdb representation of a snapshot from a xtc
@@ -761,19 +829,25 @@ def getFileExtension(trajectoryFile):
     return os.path.splitext(trajectoryFile)[1]
 
 
-def loadtxtfile(filename):
+def loadtxtfile(filename, usecols=None, postprocess=True, dtype=float):
     """
         Load a table file from a text file
 
         :param filename: Name of the file to load
         :type filename: str
+        :param usecols: Which columns to read, with 0 being the first
+        :type usecols: int
+        :param postprocess: Whether to add an extra dimension if only one line present in the txt file
+        :type postprocess: bool
+        :param dtype: Data-type of the resulting array, (default float)
+        :type dtype: data-type
 
         :returns: np.ndarray -- Contents of the text file
     """
-    data = np.loadtxt(filename)
-    if len(data.shape) < 2:
-        data = data[np.newaxis, :]
-    return data
+    metrics = np.genfromtxt(filename, missing_values=str("--"), filling_values='0', usecols=usecols, dtype=dtype)
+    if len(metrics.shape) < 2 and postprocess:
+        metrics = metrics[np.newaxis, :]
+    return metrics
 
 
 def writeNewConstraints(folder, filename, constraints):
@@ -797,8 +871,7 @@ def readConstraints(folder, filename):
     """
         Read the new constraints from disk
 
-        :param folder: Name of the folder where to write the
-            processorsToClusterMapping
+        :param folder: Name of the folder where to write the constraints
         :type folder: str
         :param filename: Name of the file where to write the constraints
         :type filename: str
@@ -831,3 +904,125 @@ def getTopologyObject(topology_file):
         return readClusteringObject(topology_file)
     else:
         raise ValueError("The topology parameter needs to be the path to a pickled Topology object or a pdb!")
+
+
+def get_available_backend():
+    machine = socket.getfqdn()
+    if "bsccv" in machine:
+        # life cluster
+        return "webagg"
+    elif "mn.bsc" in machine:
+        # nord3
+        return "tkagg"
+    elif "bsc.mn" in machine:
+        # MNIV
+        return "qt5agg"
+    elif "bullx" in machine:
+        # MinoTauro
+        return "gtkagg"
+    elif "power" in machine:
+        # CTE-Power
+        return "tkagg"
+
+
+def get_workers_output(workers, wait_time=60):
+    """
+        Get the output of a pool of workers without serializing the program at the get.
+
+        :param workers: List of AsyncResult objects created when passing work to the pool
+        :type workers: list
+        :param wait_time: Number of second to wait before checking if next worker is finished
+        :type wait_time: int
+
+        :returns: list -- List containing the output of all workers, if the function
+            passed to the pool had no return value it will be a list of None objects
+    """
+    # fill the list of results with placeholder zeros
+    results = [0 for _ in range(len(workers))]
+    to_finish = list(range(len(workers)))
+    # loop over all processes of the pool, waiting for a minute and checking
+    # if they are finished, this allows to query and reraise exceptions
+    # withiout waiting for previous succesfull workers to finish
+    while to_finish:
+        i = to_finish.pop(0)
+        workers[i].wait(wait_time)
+        if workers[i].ready():
+            # mantain the order of the results in which they were submitted,
+            # this is assumed in some places where multiprocessing is used
+            results[i] = workers[i].get()
+        else:
+            # if worker is not done append it again at the end of the queue
+            to_finish.append(i)
+    return results
+
+
+def glob_sorted(pattern, reverse=False, key=None):
+    """
+        Run glob and sort the output to ensure cross-platform compatibility
+
+        :param pattern: pathname to match files
+        :type pattern: str
+        :param reverse: If set to True, then the list elements are sorted as if each comparison were reversed
+        :type reverse: bool
+        :param key: Function of one argument that is used to extract a comparison key from each list element
+        :type key: function
+
+        :returns: list -- List containing the output of all workers, if the function
+            passed to the pool had no return value it will be a list of None objects
+    """
+    results = glob.glob(pattern)
+    return sorted(results, reverse=reverse, key=key)
+
+
+def get_string_from_array(array, sep=", ", decimals=None, remove_newlines=True):
+    """
+        Get a string representation of an array, specifiying separator and
+        decimal rounding
+
+        :param array: Input array
+        :type array: ndarray or list
+        :param sep: Separator
+        :type sep: str
+        :param decimals: Number of decimals to round the array
+        :type decimals: int
+        :param remove_newlines: Wheter to remove the newlines between dimensions
+        :type remove_newlines: bool
+    """
+    # ensure input is a numpy array
+    array = np.array(array)
+    representation = np.array2string(array, precision=decimals, separator=sep)
+    if remove_newlines:
+        return representation.replace('\n', '')
+    return representation
+
+
+def get_file_name_extension(full_path):
+    """
+        Get the name and the extension of the file pointed by full_path
+
+        :param full_path: Path to the file
+        :type full_path: str
+    """
+    return os.path.splitext(os.path.split(full_path)[1])
+
+
+def get_file_name(full_path):
+    """
+        Get the name of the file pointed by full_path
+
+        :param full_path: Path to the file
+        :type full_path: str
+    """
+    name, _ = get_file_name_extension(full_path)
+    return name
+
+
+def get_file_extension(full_path):
+    """
+        Get the extension of the file pointed by full_path
+
+        :param full_path: Path to the file
+        :type full_path: str
+    """
+    _, ext = get_file_name_extension(full_path)
+    return ext

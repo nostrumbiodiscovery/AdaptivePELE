@@ -11,8 +11,8 @@ simulation built around the Protein Energy Landscape Exploration method (`PELE <
 Usage
 -----
 
-AdaptivePELE is called with a control file as a
-parameters. The control file is a json document that contains 4 sections:
+AdaptivePELE is called with a control file as input
+parameter. The control file is a json document that contains 4 sections:
 general parameters, simulation parameters, clustering parameters and spawning
 parameters. The first block refers to general parameters of the adaptive run,
 while the other three blocks configure the three steps of an adaptive sampling
@@ -27,12 +27,15 @@ An example of usage::
 Installation
 ------------
 
-There are two methods to install AdaptivePELE, from PyPI (recommended) or
-directly from source.
+There are two methods to install AdaptivePELE, from repositories, either PyPI or Conda (recommended), or directly from source.
 
 To install from PyPI simply run::
 
     pip install AdaptivePELE
+
+To install from Conda simply run::
+
+    conda install -c nostrumbiodiscovery adaptive_pele 
 
 To install from source, you need to install and compile cython files in the base folder with::
 

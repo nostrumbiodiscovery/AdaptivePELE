@@ -449,7 +449,7 @@ class Cluster(object):
 
             :returns: float -- Value of the prefered metric
         """
-        if len(self.metrics) and self.metricCol is not None:
+        if self.metricCol is not None and len(self.metrics) > self.metricCol:
             return self.metrics[self.metricCol]
         else:
             return None
@@ -1005,7 +1005,7 @@ class Clustering(object):
             origCluster = None
             snapshots = utilities.getSnapshots(trajectory, True)
             if topology is not None:
-                top = topology.getTopology(epoch, trajNum)
+                top = topology.getTopology(self.epoch, trajNum)
             else:
                 top = None
             if self.reportBaseFilename:
@@ -1205,7 +1205,8 @@ class Clustering(object):
             else:
                 metric = cluster.getMetricFromColumn(column)
             metrics.append(metric)
-
+        if None in metrics:
+            raise utilities.RequiredParameterMissingException("Metrics not found in clusters and required for filtering!!")
         if simulationType.lower() == "min":
             optimalMetricIndex = np.argmin(metrics)
         elif simulationType.lower() == "max":
@@ -1457,7 +1458,7 @@ class SequentialLastSnapshotClustering(Clustering):
             trajNum = utilities.getTrajNum(trajectory)
             snapshots = utilities.getSnapshots(trajectory, True)
             if topology is not None:
-                top = topology.getTopology(epoch, trajNum)
+                top = topology.getTopology(self.epoch, trajNum)
             else:
                 top = None
             if self.reportBaseFilename:
@@ -1594,7 +1595,8 @@ class MSMClustering(Clustering):
                  "tica_lagtime": self.tica_lagtime, "tica_nICs": self.tica_nICs,
                  "tica_kinetic_map": self.tica_kinetic_map,
                  "tica_commute_map": self.tica_commute_map,
-                 "pyemma_clustering": self.pyemma_clustering}
+                 "pyemma_clustering": self.pyemma_clustering,
+                 "extract_params": self.extract_params}
         return state
 
     def __setstate__(self, state):
@@ -1623,6 +1625,7 @@ class MSMClustering(Clustering):
         self.tica_kinetic_map = state.get('tica_kinetic_map', True)
         self.tica_commute_map = state.get('tica_commute_map', False)
         self.pyemma_clustering = state.get('pyemma_clustering')
+        self.extract_params = state.get('extract_params', coord.ParamsHandler("", self.atom_Ids, self.resname, 0, False, False, 0, self.writeCA, True, self.nprocessors, False, "", self.sidechains, "", False, False, "", False, False))
 
     def updateRepeatParameters(self, repeat, steps):
         """
@@ -1747,11 +1750,17 @@ class MSMClustering(Clustering):
         # create Adaptive clusters from the kmeans result
         trajectory_files = glob.glob(os.path.join(outputPathConstants.allTrajsPath, "extractedCoordinates", base_traj_names))
         trajectories = [utilities.loadtxtfile(f)[:, 1:] for f in trajectory_files]
-
-        centersInfo = getCentersInfo(self.pyemma_clustering.clusterCenters, trajectories, trajectory_files, self.pyemma_clustering.dtrajs)
+        # assign non-repeated trajectories to the clusters, in order to properly
+        # assing the corresponding structures
+        nonRepeatedDtrajs = self.pyemma_clustering.assignNewTrajectories(trajectories)
+        centersInfo = getCentersInfo(self.pyemma_clustering.clusterCenters, trajectories, trajectory_files, nonRepeatedDtrajs)
         centersInfo_processed = []
         for cluster in centersInfo:
-            epoch_num, traj_num, snapshot_num = centersInfo[cluster]["structure"]
+            try:
+                epoch_num, traj_num, snapshot_num = centersInfo[cluster]["structure"]
+            except TypeError:
+                print("Structure not found for cluster %d" % cluster)
+                raise
             centersInfo_processed.append([cluster, int(epoch_num), int(traj_num), int(snapshot_num)])
         extractInfo = getRepr.getExtractInfo(centersInfo_processed)
         # extractInfo is a dictionary organized as {[epoch, traj]: [cluster, snapshot]}
@@ -2019,7 +2028,5 @@ def loadReportFile(reportFile):
         :type reportFile: str
         :returns: np.ndarray -- Contents of the report file
     """
-    metrics = np.genfromtxt(reportFile, missing_values="--", filling_values=0)
-    if len(metrics.shape) < 2:
-        metrics = metrics[np.newaxis, :]
+    metrics = utilities.loadtxtfile(reportFile)
     return filterRepeatedReports(metrics)
