@@ -26,6 +26,8 @@ jobs:
         run: conda install anaconda-client
       - name: Configurate conda-build
         run: conda config --set anaconda_upload yes
+      - name: Install numpy
+        run: conda install numpy
       # logout to prevent anaconda complaints
       - name: Configurate conda-client from anaconda
         run: |
