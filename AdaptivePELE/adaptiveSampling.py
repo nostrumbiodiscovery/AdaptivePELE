@@ -12,6 +12,7 @@ import errno
 import argparse
 import numpy as np
 from builtins import range
+import AdaptivePELE
 from AdaptivePELE.constants import blockNames, constants
 from AdaptivePELE.atomset import atomset
 from AdaptivePELE.utilities import utilities
@@ -610,7 +611,7 @@ def buildNewClusteringAndWriteInitialStructuresInNewSimulation(debug, controlFil
 
 def getClusteringLigandInfo(clustering_block_json):
     """
-        Get the ligand information (resname, resnum and chain from the cluering
+        Get the ligand information (resname, resnum and chain from the clustering
         parameters block in the control file)
 
         :param clustering_block_json: JSON block with the clustering-related parameters
@@ -620,9 +621,10 @@ def getClusteringLigandInfo(clustering_block_json):
             molecule to use for the clutering
 
     """
-    resname = str(clustering_block_json.get(blockNames.ClusteringTypes.ligandResname, "")).upper()
-    resnum = int(clustering_block_json.get(blockNames.ClusteringTypes.ligandResnum, 0))
-    resChain = str(clustering_block_json.get(blockNames.ClusteringTypes.ligandChain, "")).upper()
+    paramsBlock = clustering_block_json[blockNames.ClusteringTypes.params]
+    resname = str(paramsBlock.get(blockNames.ClusteringTypes.ligandResname, "")).upper()
+    resnum = int(paramsBlock.get(blockNames.ClusteringTypes.ligandResnum, 0))
+    resChain = str(paramsBlock.get(blockNames.ClusteringTypes.ligandChain, "")).upper()
     return resname, resnum, resChain
 
 def main(jsonParams, clusteringHook=None):
@@ -633,6 +635,7 @@ def main(jsonParams, clusteringHook=None):
         :type jsonParams: str
     """
 
+    utilities.print_unbuffered("Running AdaptivePELE version %s from %s" % (AdaptivePELE.__version__, AdaptivePELE.__path__[0]))
     controlFileValidator.validate(jsonParams)
     generalParams, spawningBlock, simulationrunnerBlock, clusteringBlock = loadParams(jsonParams)
 
@@ -776,7 +779,7 @@ def main(jsonParams, clusteringHook=None):
 
             degeneracyOfRepresentatives = spawningCalculator.calculate(clustersList, simulationRunner.getWorkingProcessors(), i, outputPathConstants=outputPathConstants)
             spawningCalculator.log()
-            # this method only does works with MSM-based spwaning methods,
+            # this method only does works with MSM-based spawning methods,
             # creating a plot of the stationary distribution and the PMF, for
             # the rest of methods it does nothing
             spawningCalculator.createPlots(outputPathConstants, i, clusteringMethod)

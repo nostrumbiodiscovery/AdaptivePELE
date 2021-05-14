@@ -319,7 +319,7 @@ def getTrajNum(trajFilename):
 
         :returns: int -- Trajectory number
     """
-    return int(trajFilename.split("_")[-1][:-4])
+    return getReportNum(trajFilename)
 
 
 def getFileSuffix(filename, separator="_"):
@@ -358,6 +358,17 @@ def getReportNum(reportFilename):
     """
     return int(getFileSuffix(reportFilename))
 
+def getReportList(reportBase):
+    """
+        Get a list of the report filenames in the path specified,
+        filtering interstep reports
+
+        :param reportBase: Report file basename
+        :type reportBase: str
+
+        :return: list -- List of report files
+    """
+    return glob_sorted(reportBase, key=getReportNum, filter_func=isReport)
 
 def getPrmtopNum(prmtopFilename):
     """
@@ -956,7 +967,7 @@ def get_workers_output(workers, wait_time=60):
     return results
 
 
-def glob_sorted(pattern, reverse=False, key=None):
+def glob_sorted(pattern, reverse=False, key=None, filter_func=None):
     """
         Run glob and sort the output to ensure cross-platform compatibility
 
@@ -971,6 +982,8 @@ def glob_sorted(pattern, reverse=False, key=None):
             passed to the pool had no return value it will be a list of None objects
     """
     results = glob.glob(pattern)
+    if filter_func is not None:
+        results = filter(filter_func, results)
     return sorted(results, reverse=reverse, key=key)
 
 

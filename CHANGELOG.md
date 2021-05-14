@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 [//] : # ## [1.x] - Unreleased
 
+## [1.7.1] - Unreleased
+
+### New features:
+
+    - Add equilibrationRotationRange, equilibrationTranslationRange and
+      equilibrationBoxRadius parameters to tune equilibration
+      performance
+    - Add support to correctly run simulations with PELE interstep reports and trajectories
+
+## Bug fixes:
+      
+    - Fix bug reading the ligand information in the adaptiveSampling main,
+      which caused to set the equilibration box in the center of mass of the
+      whole system
+
 ## [1.7] - 2021-02-11
 
 ### New features:

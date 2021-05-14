@@ -152,6 +152,7 @@
 <span class="kn">import</span> <span class="nn">argparse</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">builtins</span> <span class="kn">import</span> <span class="nb">range</span>
+<span class="kn">import</span> <span class="nn">AdaptivePELE</span>
 <span class="kn">from</span> <span class="nn">AdaptivePELE.constants</span> <span class="kn">import</span> <span class="n">blockNames</span><span class="p">,</span> <span class="n">constants</span>
 <span class="kn">from</span> <span class="nn">AdaptivePELE.atomset</span> <span class="kn">import</span> <span class="n">atomset</span>
 <span class="kn">from</span> <span class="nn">AdaptivePELE.utilities</span> <span class="kn">import</span> <span class="n">utilities</span>
@@ -750,7 +751,7 @@
 
 <div class="viewcode-block" id="getClusteringLigandInfo"><a class="viewcode-back" href="../../AdaptivePELE.html#AdaptivePELE.adaptiveSampling.getClusteringLigandInfo">[docs]</a><span class="k">def</span> <span class="nf">getClusteringLigandInfo</span><span class="p">(</span><span class="n">clustering_block_json</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Get the ligand information (resname, resnum and chain from the cluering</span>
+<span class="sd">        Get the ligand information (resname, resnum and chain from the clustering</span>
 <span class="sd">        parameters block in the control file)</span>
 
 <span class="sd">        :param clustering_block_json: JSON block with the clustering-related parameters</span>
@@ -760,9 +761,10 @@
 <span class="sd">            molecule to use for the clutering</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">resname</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">clustering_block_json</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">blockNames</span><span class="o">.</span><span class="n">ClusteringTypes</span><span class="o">.</span><span class="n">ligandResname</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
-    <span class="n">resnum</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">clustering_block_json</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">blockNames</span><span class="o">.</span><span class="n">ClusteringTypes</span><span class="o">.</span><span class="n">ligandResnum</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
-    <span class="n">resChain</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">clustering_block_json</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">blockNames</span><span class="o">.</span><span class="n">ClusteringTypes</span><span class="o">.</span><span class="n">ligandChain</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+    <span class="n">paramsBlock</span> <span class="o">=</span> <span class="n">clustering_block_json</span><span class="p">[</span><span class="n">blockNames</span><span class="o">.</span><span class="n">ClusteringTypes</span><span class="o">.</span><span class="n">params</span><span class="p">]</span>
+    <span class="n">resname</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">paramsBlock</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">blockNames</span><span class="o">.</span><span class="n">ClusteringTypes</span><span class="o">.</span><span class="n">ligandResname</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+    <span class="n">resnum</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">paramsBlock</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">blockNames</span><span class="o">.</span><span class="n">ClusteringTypes</span><span class="o">.</span><span class="n">ligandResnum</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="n">resChain</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">paramsBlock</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">blockNames</span><span class="o">.</span><span class="n">ClusteringTypes</span><span class="o">.</span><span class="n">ligandChain</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">resname</span><span class="p">,</span> <span class="n">resnum</span><span class="p">,</span> <span class="n">resChain</span></div>
 
 <div class="viewcode-block" id="main"><a class="viewcode-back" href="../../AdaptivePELE.html#AdaptivePELE.adaptiveSampling.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">jsonParams</span><span class="p">,</span> <span class="n">clusteringHook</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -773,6 +775,7 @@
 <span class="sd">        :type jsonParams: str</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="n">utilities</span><span class="o">.</span><span class="n">print_unbuffered</span><span class="p">(</span><span class="s2">&quot;Running AdaptivePELE version </span><span class="si">%s</span><span class="s2"> from </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">AdaptivePELE</span><span class="o">.</span><span class="n">__version__</span><span class="p">,</span> <span class="n">AdaptivePELE</span><span class="o">.</span><span class="n">__path__</span><span class="p">))</span>
     <span class="n">controlFileValidator</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">jsonParams</span><span class="p">)</span>
     <span class="n">generalParams</span><span class="p">,</span> <span class="n">spawningBlock</span><span class="p">,</span> <span class="n">simulationrunnerBlock</span><span class="p">,</span> <span class="n">clusteringBlock</span> <span class="o">=</span> <span class="n">loadParams</span><span class="p">(</span><span class="n">jsonParams</span><span class="p">)</span>
 
@@ -916,7 +919,7 @@
 
             <span class="n">degeneracyOfRepresentatives</span> <span class="o">=</span> <span class="n">spawningCalculator</span><span class="o">.</span><span class="n">calculate</span><span class="p">(</span><span class="n">clustersList</span><span class="p">,</span> <span class="n">simulationRunner</span><span class="o">.</span><span class="n">getWorkingProcessors</span><span class="p">(),</span> <span class="n">i</span><span class="p">,</span> <span class="n">outputPathConstants</span><span class="o">=</span><span class="n">outputPathConstants</span><span class="p">)</span>
             <span class="n">spawningCalculator</span><span class="o">.</span><span class="n">log</span><span class="p">()</span>
-            <span class="c1"># this method only does works with MSM-based spwaning methods,</span>
+            <span class="c1"># this method only does works with MSM-based spawning methods,</span>
             <span class="c1"># creating a plot of the stationary distribution and the PMF, for</span>
             <span class="c1"># the rest of methods it does nothing</span>
             <span class="n">spawningCalculator</span><span class="o">.</span><span class="n">createPlots</span><span class="p">(</span><span class="n">outputPathConstants</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">clusteringMethod</span><span class="p">)</span>
