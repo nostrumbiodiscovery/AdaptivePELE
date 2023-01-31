@@ -55,7 +55,7 @@ class SimulationParameters:
     def __init__(self):
         self.processors = 0
         self.executable = ""
-        self.templetizedControlFile = ""
+        self.templetizedControlFile = []
         self.dataFolder = ""
         self.documentsFolder = ""
         self.iterations = 0
@@ -198,7 +198,21 @@ class SimulationRunner:
         else:
             return self.parameters.exitCondition.checkExitCondition(clustering)
 
-    def makeWorkingControlFile(self, workingControlFilename, dictionary, inputTemplate=None):
+    def getControlFileForEpoch(self, epoch):
+        """
+            Get the control file for the epoch specified corresponding. For
+            most cases this will return the ony control file available, but in
+            some use-cases this will be used to select between the different
+            control files provided 
+
+            :param epoch: Number of the epoch for which to provide the control
+                file
+            :type epoch: int
+        """
+        numberControlFiles = len(self.parameters.templetizedControlFile)
+        return self.parameters.templetizedControlFile[epoch % numberControlFiles]
+
+    def makeWorkingControlFile(self, workingControlFilename, dictionary, inputTemplate):
         """
             Substitute the values in the templetized control file
 
@@ -206,17 +220,11 @@ class SimulationRunner:
             :type workingControlFilename: str
             :param dictionary: Dictonary containing the parameters to substitute
                 in the control file
+            :type dictionary: dict
             :param inputFileTemplate: Template control file
             :type inputFileTemplate: str
-            :type dictionary: dict
         """
-        if inputTemplate is None:
-            with open(self.parameters.templetizedControlFile, "r") as inputFile:
-                inputFileContent = inputFile.read()
-        else:
-            inputFileContent = inputTemplate
-
-        inputFileTemplate = string.Template(inputFileContent)
+        inputFileTemplate = string.Template(inputTemplate)
         outputFileContent = inputFileTemplate.substitute(dictionary)
         with open(workingControlFilename, "w") as outputFile:
             outputFileContent = outputFileContent.replace("'", '"')
@@ -297,7 +305,10 @@ class SimulationRunner:
         if self.parameters.boxCenter is not None:
             peleControlFileDictionary["BOX_RADIUS"] = self.parameters.boxRadius
             peleControlFileDictionary["BOX_CENTER"] = self.parameters.boxCenter
-        self.makeWorkingControlFile(outputPathConstants.tmpControlFilename % epoch, peleControlFileDictionary)
+        with open(self.getControlFileForEpoch(epoch), "r") as inputFile:
+            templateControlFileContent = inputFile.read()
+        self.makeWorkingControlFile(outputPathConstants.tmpControlFilename % epoch, peleControlFileDictionary, templateControlFileContent)
+
 
     def unifyReportNames(self, spawningReportName):
         """
@@ -639,7 +650,10 @@ class PeleSimulation(SimulationRunner):
             self.parameters.equilibrationLength = self.calculateEquilibrationLength()
         trajName = "".join(self.parameters.trajectoryName.split("_%d"))
         equilibrationPeleDict = {"PELE_STEPS": self.parameters.equilibrationLength, "SEED": self.parameters.seed}
-        peleControlFileDict, templateNames = utilities.getPELEControlFileDict(self.parameters.templetizedControlFile)
+        # in cases with more than one control file, we arbitrarely use the
+        # first one for the equilibration, this might be revisited in the
+        # future depending on the use case
+        peleControlFileDict, templateNames = utilities.getPELEControlFileDict(self.parameters.templetizedControlFile[0])
         peleControlFileDict = self.getEquilibrationControlFile(peleControlFileDict)
         similarityColumn = self.getMetricColumns(peleControlFileDict)
 
@@ -937,7 +951,7 @@ class MDSimulation(SimulationRunner):
         """
         print("Processing trajectories for epoch", epoch)
         trajectory_files = glob.glob(os.path.join(output_path, constants.AmberTemplates.trajectoryTemplate.replace("%d", "*") % self.parameters.format))
-        trajectory_files = [(traj, topology.getTopologyFile(epoch, utilities.getTrajNum(traj))) for traj in trajectory_files]
+        trajectory_files = [(i, traj, topology.getTopologyFile(epoch, utilities.getTrajNum(traj))) for i, traj in enumerate(trajectory_files)]
         pool = mp.Pool(self.parameters.trajsPerReplica)
         pool.map(processTraj, trajectory_files)
         pool.close()
@@ -1149,7 +1163,10 @@ class MDSimulation(SimulationRunner):
 
         with open(PDBtoOpen, "r") as inp:
             for line in inp:
-                if resname in line and (line.startswith("ATOM") or line.startswith("HETATM")):
+                if line.startswith("ATOM") or line.startswith("HETATM"):
+                    line_resname = line[17:20].strip()
+                    if resname != line_resname:
+                        continue
                     if (resname, line[21]) in line_dict:
                         line_dict[(resname, line[21])] += line
                     else:
@@ -1224,7 +1241,7 @@ class MDSimulation(SimulationRunner):
             checkpoints = glob.glob(os.path.join(outputDir, "checkpoint*.chk"))
             checkpoints = sorted(checkpoints, key=utilities.getTrajNum)
         # always read the prmtop files from disk to serve as communication
-        # between diffrent processses
+        # between different processses
         prmtops = glob.glob(os.path.join(outputPathConstants.topologies, "*prmtop"))
         # sort the prmtops according to the original topology order
         self.prmtopFiles = sorted(prmtops, key=utilities.getPrmtopNum)
@@ -1478,11 +1495,17 @@ class RunnerBuilder:
             if params.dataFolder is None or params.documentsFolder is None or params.executable is None:
                 raise utilities.ImproperParameterValueException("PELE parameters not defined! Please ensure that you have defined the path to the PELE executable, the Data and Documents paths")
             params.templetizedControlFile = paramsBlock[blockNames.SimulationParams.templetizedControlFile]
+            if isinstance(params.templetizedControlFile, basestring):
+                params.templetizedControlFile = [params.templetizedControlFile]
             params.iterations = paramsBlock[blockNames.SimulationParams.iterations]
             params.peleSteps = paramsBlock[blockNames.SimulationParams.peleSteps]
             params.seed = paramsBlock[blockNames.SimulationParams.seed]
             params.trajectoryName = paramsBlock.get(blockNames.SimulationParams.trajectoryName)
-            peleDict, _ = utilities.getPELEControlFileDict(params.templetizedControlFile)
+            # in cases with more than one control file, we arbitrarely use the
+            # first one for the equilibration, this might be revisited in the
+            # future depending on the use case
+            templetizedControlFileExmaple = params.templetizedControlFile[0]
+            peleDict, _ = utilities.getPELEControlFileDict(templetizedControlFileExmaple)
             params.reportName, trajectoryName = utilities.getReportAndTrajectoryWildcard(peleDict)
             if params.trajectoryName is None:
                 params.trajectoryName = trajectoryName
@@ -1520,7 +1543,7 @@ class RunnerBuilder:
             exitConditionBlock = paramsBlock.get(blockNames.SimulationParams.exitCondition, None)
             if exitConditionBlock:
                 exitConditionBuilder = ExitConditionBuilder()
-                params.exitCondition = exitConditionBuilder.build(exitConditionBlock, params.templetizedControlFile, params.processors)
+                params.exitCondition = exitConditionBuilder.build(exitConditionBlock, templetizedControlFileExmaple, params.processors)
 
             return PeleSimulation(params)
         elif simulationType == blockNames.SimulationType.md:
@@ -1672,9 +1695,15 @@ def processTraj_mdtraj(input_files):
         :param input_files: Tuple with (trajectory_file, topology_file)
         :type input_files: tuple
     """
-    traj_file, top_file = input_files
+    index, traj_file, top_file = input_files
     t = md.load(traj_file, top=top_file)
     backbone_selection = t.top.select("backbone")
+    if backbone_selection.size == 0:
+        # if no protein is found we will not try to align the system, as it is
+        # not clear what would be the optimal procedure
+        if index == 0:
+            print("Since no receptor is found, system will not be aligned")
+        return
     t.image_molecules()
     t.superpose(t, atom_indices=backbone_selection)
     t.save(traj_file)
@@ -1686,10 +1715,17 @@ def processTraj_mdanalysis(input_files):
         :param input_files: Tuple with (trajectory_file, topology_file)
         :type input_files: tuple
     """
-    traj_file, top_file = input_files
+    index, traj_file, top_file = input_files
     mobile = MDA.Universe(top_file)
     new_file = "%s_new%s" % os.path.splitext(traj_file)
     t = MDA.Universe(top_file, traj_file)
+    backbone_selection = t.select_atoms("backbone")
+    if backbone_selection.n_atoms == 0:
+        # if no protein is found we will not try to align the system, as it is
+        # not clear what would be the optimal procedure
+        if index == 0:
+            print("Since no receptor is found, system will not be aligned")
+        return
     t.atoms.wrap(compound="residues")
     alignment = align.AlignTraj(t, mobile, select="backbone", filename=new_file)
     alignment.run()

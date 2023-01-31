@@ -13,13 +13,40 @@ To install from PyPI simply run::
 
 To install from Conda run::
 
-     conda install -c conda-forge -c nostrumbiodiscovery adaptive_pele 
+    conda install -c conda-forge -c nostrumbiodiscovery adaptive_pele 
 
-To install from source, you need to install and compile cython files in the base folder with::
+You can use a container image to run AdaptivePELE, using either Docker or
+Singularity (recommended). Note that when using PELE as propagator, you will
+need access to a PELE license, please contact Nostrum Biodiscovery
+(http://nostrumbiodiscovery.com) for that.  To build a singularity image with PELE
+support, you an follow this steps::
+
+    git clone https://github.com/AdaptivePELE/AdaptivePELE.git
+    cd docker
+    cp /path/to/pele_image.sif pele.sif
+    singularity build adaptivepele.sif AdaptivePELE.def    
+
+There is a docker image available, but taht does only allow
+to run MD simulaitons using OpenMM. You can get it from the dockerhub::
+
+    docker pull cescgina/adaptivepele_md
+
+Note that running simulations from this container would require some tweaking,
+as you need to mount a volume to give access to the input files, as well as the
+output location, which is why we recommend to use singularity. You can obtain
+a singularity image from the docker one running::
+
+    singularity pull adaptivepele_md.sif docker://cescgina/adaptivepele_md
+
+To install from source, you need to install the depencies::
 
     git clone https://github.com/AdaptivePELE/AdaptivePELE.git
     cd AdaptivePELE
-    python setup.py build_ext --inplace
+    pip install --requirement requirements.txt
+    
+and compile cython files in the same folder with::
+
+    python setup.py install
 
 Also, if AdaptivePELE was not installed in a typical library directory, a common option is to add it to your local PYTHONPATH::
 
@@ -1208,23 +1235,23 @@ like::
 Note also that this job requests 8 cpus per replica. At least a number of cpus
 per replica equal to the number of trajectories per replica are required.
 Similarly, the CTE-POWER cluster also has 4 gpus per node, so the configuration
-is very similar. An example for this machin would look like::
+is very similar. An example for this machine would look like::
 
     #!/bin/bash
-    #SBATCH --job-name="md_PK2_evoCt"
+    #SBATCH --job-name="3ptb_Ad_MD_mt"
     #SBATCH -D .
-    #SBATCH --output=md_PK2_evoCt.out
-    #SBATCH --error=md_PK2_evoCt.err
-    #SBATCH --ntasks=1
-    #SBATCH --nodes=1
-    #SBATCH --gres gpu:4
+    #SBATCH --output=test_3ptb_Ad_MD_mt.out
+    #SBATCH --error=test_3ptb_Ad_MD_mt.err
+    #SBATCH --ntasks=2
+    #SBATCH --nodes=2
     #SBATCH --cpus-per-task=160
-    #SBATCH --time=14:00:00
+    #SBATCH --time=01:00:00
+    #SBATCH --gres gpu:4
 
     module load python/3.6.5
     module load ambertools/18
     export PYTHONPATH="/gpfs/projects/bsc72/adaptiveSampling/bin_cte/v1.6.2:/gpfs/projects/bsc72/lib/site-packages-cte"
-    srun python -m AdaptivePELE.adaptiveSampling templetized_PK2_evoCt_md.conf
+    srun python -m AdaptivePELE.adaptiveSampling control_file_MD_3ptb_mt.conf
 
 
 .. [APELE] Daniel Lecina, Joan F. Gilabert, and Victor Guallar. Adaptive simulations, towards interactive protein-ligand modeling. Scientific Reports, 7(1):8466, 2017, https://www.nature.com/articles/s41598-017-08445-5

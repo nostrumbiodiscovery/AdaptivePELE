@@ -6,7 +6,27 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 [//] : # ## [1.x] - Unreleased
 
-## [1.7.1] - Unreleased
+## [1.7.3] - 2023-01-31
+
+### Bug fixes:
+
+    - Fix compatibility issues with networkx
+
+    
+## [1.7.2] - 2022-11-28
+
+## New features:
+
+    - Add script to run RMSD clustering from scratch
+    - Add filters for plotAdaptive script
+    - Add support for multiple control files
+    
+## Bug fixes:
+
+    - Fix bug in pdb processing for MD simulation when no protein was present
+    - Fix bug extracting the ligand for MD in some weird edge cases
+
+## [1.7.1] - 2021-05-14
 
 ### New features:
 
